@@ -20,10 +20,10 @@ You might also like my other module, [Vehicles and Mechanisms](https://github.co
 
 ## Installation
 
-You can install this module by searching for it in Foundry's built-in module browser, or with the following public URL:
+You can install this module by searching for it in Foundry's built-in module browser (**strongly recommanded**), or with the following public URL:
 
 ```
-https://raw.githubusercontent.com/grandseiken/foundryvtt-multilevel-tokens/master/module.json
+https://raw.githubusercontent.com/BeneosBattlemaps/Beneos-Multilevel-Tokens/main/module.json
 ```
 
 Remember to enable the module in the **Manage Modules** menu after installation.
