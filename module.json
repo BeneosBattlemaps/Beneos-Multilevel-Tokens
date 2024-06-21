@@ -10,9 +10,9 @@
       "name": "LeRatierBretonnien"
     }
   ],
-  "version": "1.7.1",
+  "version": "1.7.2",
   "compatibility": {
-    "minimum": 12,
+    "minimum": 11,
     "verified": 12
   },
   "scripts": ["multilevel.js"],
@@ -51,5 +51,5 @@
   ],
   "url": "https://raw.githubusercontent.com/BeneosBattlemaps/Beneos-Multilevel-Tokens",
   "manifest": "https://raw.githubusercontent.com/BeneosBattlemaps/Beneos-Multilevel-Tokens/main/module.json",
-  "download": "https://github.com/BeneosBattlemaps/Beneos-Multilevel-Tokens/archive/refs/tags/v1.7.1.zip"
+  "download": "https://github.com/BeneosBattlemaps/Beneos-Multilevel-Tokens/archive/refs/tags/v1.7.2.zip"
 }

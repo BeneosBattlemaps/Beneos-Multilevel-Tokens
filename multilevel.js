@@ -19,6 +19,10 @@ const MLT = {
     foundry.data.ShapeData.TYPES.POLYGON],
 };
 
+/* TODO section : 
+  Play sound : game.socket.emit("playAudio", {src: "path/to/your/sound.ogg"}, {recipients: [game.users.getName("user name").id]});
+*/
+
 class MltRequestBatch {
   constructor() {
     this._scenes = {};
@@ -1048,6 +1052,8 @@ class MultilevelTokens {
         owners.forEach(user => {
           requestBatch.extraAction(() => game.socket.emit("pullToScene", outScene.id, user.id));
         })
+        // Play sound
+        requestBatch.extraAction(() => { } );
       }
     });
   }
@@ -1574,7 +1580,7 @@ class MultilevelTokens {
         this._setLastTeleport(token.parent, token);
       } else {
         const animationName = options.animation?.name || token.object?.animationName;
-        const animationPromise = token.object?.animationContexts.get(animationName)?.promise;
+        const animationPromise = token.object?.animationContexts?.get(animationName)?.promise;
 
         (animationPromise || Promise.resolve()).then(() => {
           this._doTeleport(token.parent, token) || this._doLevelTeleport(token.parent, token);
