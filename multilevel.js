@@ -1642,11 +1642,11 @@ class MultilevelTokens {
     }
     if (!note.mouseInteractionManager.mltOverride) {
       note.mouseInteractionManager.mltOverride = true;
-
       const oldPermission = note.mouseInteractionManager.permissions.clickLeft;
       const oldCallback = note.mouseInteractionManager.callbacks.clickLeft;
       note.mouseInteractionManager.permissions.clickLeft = () => true;
       note.mouseInteractionManager.callbacks.clickLeft = (event) => {
+        event.stopPropagation();
         if (this._isPrimaryGamemaster()) {
           this._doMapNoteTeleport(note.scene, note, game.user);
         } else {
