@@ -78,7 +78,7 @@ Cloned tokens behave a little differently from regular tokens. They can't be mov
 ![Token cloning example](demo/cloning.gif)
 
 ## True Mirror
-The "True Mirror" flag on a cloning region will flip your token images and invert rotation to allow you to add mirrors to scenes.
+The "True Mirror" flag on a cloning region will flip your token images and invert rotation to allow you to add mirrors to scenes. It only does anything if "Mirror horizontally" or "Mirror vertically" are enabled.
 
 ![Mirror example](demo/mirror.gif)
 
