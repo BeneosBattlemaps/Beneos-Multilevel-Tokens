@@ -532,7 +532,7 @@ class MultilevelTokens {
       if(this._hasRegionFlag(targetRegion, "flipY")){
         data.texture.scaleY = -token.texture.scaleY
       }
-      if(!(this._hasRegionFlag(targetRegion, "flipY") && this._hasRegionFlag(targetRegion, "flipX"))){
+      if((this._hasRegionFlag(targetRegion, "flipY") != this._hasRegionFlag(targetRegion, "flipX"))){
         data.rotation = -data.rotation
       }
     }
