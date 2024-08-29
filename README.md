@@ -77,6 +77,11 @@ Cloned tokens behave a little differently from regular tokens. They can't be mov
 
 ![Token cloning example](demo/cloning.gif)
 
+## True Mirror
+The "True Mirror" flag on a cloning region will flip your token images and invert rotation to allow you to add mirrors to scenes.
+
+![Mirror example](demo/mirror.gif)
+
 ### Notes
 
 * Cloning regions can be any size or shape you like, and can be freely moved or rotated. You can use the polygon tool to create complex shapes. The relative sizes and rotations of **Source** and **Target** regions will be taken into account when cloning tokens: clones will be positioned, rotated, and scaled up or down as necessary. It's usually easiest to start with two copies of the same drawing and go from there.
