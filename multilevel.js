@@ -536,7 +536,6 @@ class MultilevelTokens {
         data.rotation = -data.rotation
       }
     }
-    console.log(data)
     return data;
   }
 
