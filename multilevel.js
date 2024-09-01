@@ -513,7 +513,7 @@ class MultilevelTokens {
     data.x = targetPosition.x;
     data.y = targetPosition.y;
     data.rotation += targetRegion.rotation - sourceRegion.rotation;
-    data.tint = Color.fromRGB(tintRgb).toString(16);
+    data.texture.tint = Color.fromRGB(tintRgb).toString(16);
     data.alpha = token.alpha * opacity;
     if (!data.flags || !cloneModuleFlags) {
       data.flags = {};
@@ -536,6 +536,7 @@ class MultilevelTokens {
         data.rotation = -data.rotation
       }
     }
+    console.log(data)
     return data;
   }
 
