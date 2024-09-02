@@ -32,6 +32,7 @@
   "MLT.FieldClonedTokenScale": "Skalierungsfaktor für geklonte Figur",
   "MLT.FieldMirrorHorizontally": "Horizontal spiegeln",
   "MLT.FieldMirrorVertically": "Vertikal spiegeln",
+  "MLT.FieldMirrorTrue": "Wahrer spiegel",
   "MLT.SectionMacroTriggers": "Macro Auslöser",
   "MLT.SectionMacroTriggersNotes": "Löse ein Makro aus, wenn eine Figur diese Region betritt, verlässt oder sich innerhalb bewegt. Innerhalb des Makros geben die Variablen <b>scene</b>, <b>region</b>, <b>token</b> und <b>actor</b> die <b>Scene</b>, <b>Drawing</b>, <b>Token</b> und <b>Actor</b> Objekte zurück, die beteiligt sind.",
   "MLT.FieldTriggerOnEnter": "Beim Betreten auslösen",

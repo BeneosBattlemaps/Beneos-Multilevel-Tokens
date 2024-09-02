@@ -35,6 +35,7 @@
   "MLT.FieldClonedTokenScale": "Factor de escala de los iconos clonados",
   "MLT.FieldMirrorHorizontally": "Voltear horizontalmente",
   "MLT.FieldMirrorVertically": "Voltear verticalmente",
+  "MLT.FieldMirrorTrue": "Verdadero espejo",
   "MLT.SectionMacroTriggers": "Disparadores de macros",
   "MLT.SectionMacroTriggersNotes": "Ejecuta una macro cuando un icono entra, sale, o se mueve dentro de esta región. Dentro de la macro, las variables <b>scene</b>, <b>region</b>, <b>token</b> y <b>actor</b> hacen referencia a los objetos correspondientes <b>Scene</b>, <b>Drawing</b>, <b>Token</b> y <b>Actor</b>",
   "MLT.FieldTriggerOnEnter": "Disparar al entrar",

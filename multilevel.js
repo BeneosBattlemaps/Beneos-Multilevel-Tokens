@@ -513,7 +513,7 @@ class MultilevelTokens {
     data.x = targetPosition.x;
     data.y = targetPosition.y;
     data.rotation += targetRegion.rotation - sourceRegion.rotation;
-    data.tint = Color.fromRGB(tintRgb).toString(16);
+    data.texture.tint = Color.fromRGB(tintRgb).toString(16);
     data.alpha = token.alpha * opacity;
     if (!data.flags || !cloneModuleFlags) {
       data.flags = {};
@@ -525,6 +525,17 @@ class MultilevelTokens {
     data.flags[MLT.SCOPE][MLT.FLAG_SOURCE_TOKEN] = token._id;
     data.flags[MLT.SCOPE][MLT.FLAG_SOURCE_REGION] = sourceRegion._id;
     data.flags[MLT.SCOPE][MLT.FLAG_TARGET_REGION] = targetRegion._id;
+    if(this._hasRegionFlag(targetRegion, "flipTrue")){
+      if(this._hasRegionFlag(targetRegion, "flipX")){
+        data.texture.scaleX = -token.texture.scaleX
+      }
+      if(this._hasRegionFlag(targetRegion, "flipY")){
+        data.texture.scaleY = -token.texture.scaleY
+      }
+      if((this._hasRegionFlag(targetRegion, "flipY") != this._hasRegionFlag(targetRegion, "flipX"))){
+        data.rotation = -data.rotation
+      }
+    }
     return data;
   }
 
@@ -1277,6 +1288,10 @@ class MultilevelTokens {
           <label for="flags.multilevel-tokens.flipY">${game.i18n.localize("MLT.FieldMirrorVertically")}</label>
           <input type="checkbox" name="flags.multilevel-tokens.flipY" data-dtype="Boolean"/>
         </div>
+        <div class="form-group">
+          <label for="flags.multilevel-tokens.flipTrue">${game.i18n.localize("MLT.FieldMirrorTrue")}</label>
+          <input type="checkbox" name="flags.multilevel-tokens.flipTrue" data-dtype="Boolean"/>
+        </div>
       </div>
       <h3 class="form-header">
         <i class="fas fa-magic"/></i> ${game.i18n.localize("MLT.SectionMacroTriggers")}
@@ -1339,6 +1354,7 @@ class MultilevelTokens {
     input("scale").prop("value", flags.scale || 1);
     input("flipX").prop("checked", flags.flipX);
     input("flipY").prop("checked", flags.flipY);
+    input("flipTrue").prop("checked", flags.flipTrue);
     input("macroEnter").prop("checked", flags.macroEnter);
     input("macroLeave").prop("checked", flags.macroLeave);
     input("macroMove").prop("checked", flags.macroMove);
@@ -1380,6 +1396,7 @@ class MultilevelTokens {
       enable("scale", isTarget);
       enable("flipX", isTarget);
       enable("flipY", isTarget);
+      enable("flipTrue", isTarget);
       enable("macroName", isMacro);
       enable("macroArgs", isMacro);
       enable("levelNumber", isLevel);

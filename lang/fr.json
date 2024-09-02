@@ -27,6 +27,7 @@
   "MLT.FieldClonedTokenOpacity": "Opacity for cloned tokens",
   "MLT.FieldMirrorHorizontally": "Inverser horizontalement",
   "MLT.FieldMirrorVertically": "Inverser verticalement",
+  "MLT.FieldMirrorTrue": "Vrai miroir",
   "MLT.SectionMacroTriggers": "Déclencheurs de macros",
   "MLT.SectionMacroTriggersNotes": "Déclencher une macro quand un jeton rentre dans cette région, en sort, ou bouge à l'intérieur. Au sein de la macro, les variables <b>scene</b>, <b>region</b> et <b>token</b> renvoient les objets <b>Scène</b>, <b>Dessin</b> et <b>Jeton</b> correspondants.",
   "MLT.FieldTriggerOnEnter": "Déclencher sur l'entrée",

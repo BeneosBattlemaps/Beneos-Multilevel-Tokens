@@ -32,6 +32,7 @@
   "MLT.FieldClonedTokenScale": "複製されたトークンの縮尺係数",
   "MLT.FieldMirrorHorizontally": "横方向に反転",
   "MLT.FieldMirrorVertically": "縦方向に反転",
+  "MLT.FieldMirrorTrue": "真実の鏡",
   "MLT.SectionMacroTriggers": "マクロトリガー",
   "MLT.SectionMacroTriggersNotes": "トークンがこの領域に入ったとき、出たとき、または領域内を移動したときにマクロを起動します。マクロでは、<strong>scene</strong>、<strong>region</strong>、<strong>token</strong>、<strong>actor</strong> が変数として使用できます。それぞれには <strong>Scene</strong>、<strong>Drawing</strong>、<strong>Token</strong>、<strong>Actor</strong> オブジェクトが格納されています。",
   "MLT.FieldTriggerOnEnter": "入場時にトリガーする",

@@ -32,6 +32,7 @@
   "MLT.FieldClonedTokenScale": "Cloned token scaling factor",
   "MLT.FieldMirrorHorizontally": "Mirror horizontally",
   "MLT.FieldMirrorVertically": "Mirror vertically",
+  "MLT.FieldMirrorTrue": "True Mirror",
   "MLT.SectionMacroTriggers": "Macro triggers",
   "MLT.SectionMacroTriggersNotes": "Trigger a macro when a token enters this region, leaves it, or moves within it. Within the macro, the variables <b>scene</b>, <b>region</b>, <b>token</b> and <b>actor</b> give the <b>Scene</b>, <b>Drawing</b>, <b>Token</b> and <b>Actor</b> objects involved.",
   "MLT.FieldTriggerOnEnter": "Trigger on enter",
