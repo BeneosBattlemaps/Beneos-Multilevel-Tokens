@@ -1452,7 +1452,7 @@ class MultilevelTokens {
     if (!this._isPrimaryGamemaster()) {
       return;
     }
-    console.log(MLT.LOG_PREFIX, "Refreshing all");
+    // Remove console spamming #11 : console.log(MLT.LOG_PREFIX, "Refreshing all");
     this._queueAsync(requestBatch => {
       game.scenes.forEach(scene => {
         this._getInvalidReplicatedTokensForScene(scene)
