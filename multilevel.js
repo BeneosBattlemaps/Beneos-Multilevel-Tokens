@@ -1034,7 +1034,9 @@ class MultilevelTokens {
       }
       const animate = this._hasRegionFlag(inRegion, "animate") || this._hasRegionFlag(outRegion, "animate");
       //console.log("Output scene : ", outScene);
-      destinations.push([foundry.utils.duplicate(token), outScene, animate, position]);
+      const duplToken = foundry.utils.duplicate(token);
+      duplToken.elevation = outRegion.elevation ?? duplToken.elevation;
+      destinations.push([duplToken, outScene, animate, position]);
     }
     this._queueAsync(requestBatch => {
       for (const [token, outScene, animate, position] of destinations) {
