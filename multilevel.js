@@ -1035,7 +1035,12 @@ class MultilevelTokens {
       const animate = this._hasRegionFlag(inRegion, "animate") || this._hasRegionFlag(outRegion, "animate");
       //console.log("Output scene : ", outScene);
       const duplToken = foundry.utils.duplicate(token);
-      duplToken.elevation = outRegion.elevation ?? duplToken.elevation;
+      if (outRegion.elevation && inRegion.elevation) { // Fix issue 21
+        duplToken.elevation = duplToken.elevation - inRegion.elevation+outRegion.elevation
+      } else {
+        duplToken.elevation = duplToken.elevation
+      }
+      // Previous elevation setting : duplToken.elevation = outRegion.elevation ?? duplToken.elevation;
       destinations.push([duplToken, outScene, animate, position]);
     }
     this._queueAsync(requestBatch => {
