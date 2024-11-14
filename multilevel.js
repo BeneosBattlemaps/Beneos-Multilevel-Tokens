@@ -512,6 +512,9 @@ class MultilevelTokens {
     const targetPosition = this._getTokenPositionFromCentre(targetScene, data, targetCentre);
     data.x = targetPosition.x;
     data.y = targetPosition.y;
+    if (Number(data?.elevation) && Number(sourceRegion?.elevation) && Number(targetRegion?.elevation) ) { // Fix issue 21
+      data.elevation = data.elevation - sourceRegion.elevation + targetRegion.elevation
+    }
     data.rotation += targetRegion.rotation - sourceRegion.rotation;
     data.texture.tint = Color.fromRGB(tintRgb).toString(16);
     data.alpha = token.alpha * opacity;
@@ -1035,10 +1038,10 @@ class MultilevelTokens {
       const animate = this._hasRegionFlag(inRegion, "animate") || this._hasRegionFlag(outRegion, "animate");
       //console.log("Output scene : ", outScene);
       const duplToken = foundry.utils.duplicate(token);
-      if (outRegion.elevation && inRegion.elevation) { // Fix issue 21
-        duplToken.elevation = duplToken.elevation - inRegion.elevation+outRegion.elevation
+      if (Number(outRegion?.elevation) && Number(inRegion?.elevation)) { // Fix issue 21
+        duplToken.elevation = duplToken.elevation - Number(inRegion.elevation) + Number(outRegion.elevation)
       } else {
-        duplToken.elevation = duplToken.elevation
+        duplToken.elevation = duplToken?.elevation || 0
       }
       // Previous elevation setting : duplToken.elevation = outRegion.elevation ?? duplToken.elevation;
       destinations.push([duplToken, outScene, animate, position]);
