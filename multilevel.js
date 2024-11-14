@@ -1593,7 +1593,7 @@ class MultilevelTokens {
       this._queueAsync(requestBatch =>
           this._updateAllReplicatedTokensForToken(requestBatch, token.parent, t, Object.keys(update)));
       if ('x' in update || 'y' in update) {
-        this._doMacros(token.parent, token);
+        // Deprecated, moved below : this._doMacros(token.parent, token);
       }
       if (MLT.REPLICATED_UPDATE in options) {
         this._setLastTeleport(token.parent, token);
@@ -1603,6 +1603,7 @@ class MultilevelTokens {
 
         (animationPromise || Promise.resolve()).then(() => {
           this._doTeleport(token.parent, token) || this._doLevelTeleport(token.parent, token);
+          this._doMacros(token.parent, token); // Moved here as a fix for #12
         })
       }
     }
