@@ -19,7 +19,7 @@ const MLT = {
     foundry.data.ShapeData.TYPES.POLYGON],
 };
 
-/* TODO section : 
+/* TODO section :
   Play sound : game.socket.emit("playAudio", {src: "path/to/your/sound.ogg"}, {recipients: [game.users.getName("user name").id]});
 */
 
@@ -196,6 +196,7 @@ class MultilevelTokens {
   }
 
   _isAuthorisedRegion(drawing) {
+    // Debug :console.log(MLT.LOG_PREFIX, "Checking if drawing is an authorized region", drawing  );
     return (drawing.shape.type === foundry.data.ShapeData.TYPES.RECTANGLE ||
             drawing.shape.type === foundry.data.ShapeData.TYPES.ELLIPSE ||
             drawing.shape.type === foundry.data.ShapeData.TYPES.POLYGON) &&
@@ -807,7 +808,7 @@ class MultilevelTokens {
         continue;
       }
       if (data.delete.length) {
-        promise = promise.then(() => scene.deleteEmbeddedDocuments(Token.embeddedName, data.delete, foundry.utils.duplicate(baseOptions)));
+        promise = promise.then(() => scene.deleteEmbeddedDocuments(foundry.canvas.placeables.Token.embeddedName, data.delete, foundry.utils.duplicate(baseOptions)));
       }
       if (data.updateAnimateDiff.length) {
         promise = promise.then(() => scene.updateEmbeddedDocuments(Token.embeddedName, data.updateAnimateDiff,
@@ -846,7 +847,7 @@ class MultilevelTokens {
                                                                    Object.assign({diff: false}, foundry.utils.duplicate(baseOptions))));
       }
       if (data.create.length) {
-        promise = promise.then(() => scene.createEmbeddedDocuments(Token.embeddedName, data.create, foundry.utils.duplicate(baseOptions)));
+        promise = promise.then(() => scene.createEmbeddedDocuments(foundry.canvas.placeables.Token.embeddedName, data.create, foundry.utils.duplicate(baseOptions)));
       }
     }
     for (const f of requestBatch._extraActions) {
@@ -1200,15 +1201,21 @@ class MultilevelTokens {
 
   _injectDrawingConfigTab(app, html, data) {
     let flags = {};
-    if (data.object.flags && data.object.flags[MLT.SCOPE]) {
-      flags = data.object.flags[MLT.SCOPE];
+    if (data.document.flags?.[MLT.SCOPE]) {
+      flags = data.document.flags[MLT.SCOPE];
     }
 
-    const tab = `<a class="item" data-tab="multilevel-tokens">
+    let newTab = foundry.utils.duplicate(data.tabs['text'])
+    newTab.id = "multilevel-tokens";
+    newTab.label = game.i18n.localize("MLT.TabTitle");
+    data.tabs["multilevel-tokens"] = newTab;
+    console.log("MLT: Drawing config tab", data);
+
+    const tab = `<a data-action="tab" data-group="sheet" data-tab="multilevel-tokens">
       <i class="fas fa-building"></i> ${game.i18n.localize("MLT.TabTitle")}
     </a>`;
     const contents = `
-    <div class="tab" data-tab="multilevel-tokens">
+    <div class="tab" data-group="sheet" data-tab="multilevel-tokens" data-application-part="multilevel-tokens">
       <p class="notes">${game.i18n.localize("MLT.TabNotes")}</p>
       <div class="form-group">
         <label for="flags.multilevel-tokens.disabled">${game.i18n.localize("MLT.FieldDisableRegion")}</label>
@@ -1343,9 +1350,9 @@ class MultilevelTokens {
       </div>
     </div>`;
 
-    html.find(".tabs .item").last().after(tab);
-    html.find(".tab").last().after(contents);
-    const mltTab = html.find(".tab").last();
+    $(html).find(".tabs a").last().after(tab);
+    $(html).find(".tab").last().after(contents);
+    const mltTab = $(html).find(".tab").last();
     const input = (name) => mltTab.find(`input[name="flags.multilevel-tokens.${name}"]`);
     const group = (name) => mltTab.find(`#${name}`);
 
@@ -1422,16 +1429,16 @@ class MultilevelTokens {
   }
 
   _convertDrawingConfigUpdateData(data, update) {
-    if (!update.flags || !update.flags[MLT.SCOPE]) {
+    if (!update.flags?.[MLT.SCOPE]) {
       return;
     }
 
     let manualText = "text" in update && update.text;
-    if (!update.flags || !update.flags[MLT.SCOPE]) {
+    if (!update.flags?.[MLT.SCOPE]) {
       return;
     }
     const flags = update.flags[MLT.SCOPE];
-    const oldFlags = data.flags && data.flags[MLT.SCOPE] ? data.flags[MLT.SCOPE] : {};
+    const oldFlags = data?.flags[MLT.SCOPE] ? data.flags[MLT.SCOPE] : {};
 
     if ("scale" in flags && (isNaN(flags.scale) || flags.scale <= 0)) {
       flags.scale = 1;
@@ -1747,7 +1754,8 @@ class MultilevelTokens {
   }
 
   _onRenderDrawingConfig(app, html, data) {
-    if (this._isAuthorisedRegion(data.object) && MLT.SUPPORTED_TYPES.includes(data.object.shape.type)) {
+    // Debug: console.log(MLT.LOG_PREFIX, "Drawing config render", data);
+    if (this._isAuthorisedRegion(data.document) && MLT.SUPPORTED_TYPES.includes(data.document.shape.type)) {
       this._injectDrawingConfigTab(app, html, data);
     }
   }
