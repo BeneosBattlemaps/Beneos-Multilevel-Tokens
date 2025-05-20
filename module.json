@@ -4,7 +4,7 @@
   "description": "Adds several helpful token automation features, particularly (but not only) suited to maps with multiple levels. Teleport tokens to another location when they move into a particular region (e.g. from the bottom of a staircase to the top). Clone tokens from one region to another, syncing movement and other property updates (e.g. allowing players to \"see\" what is happening on floors below). Trigger macros when a token enters or leaves a particular region. See page at URL below for full usage instructions.",
   "url": "https://github.com/BeneosBattlemaps/Beneos-Multilevel-Tokens/",
   "manifest": "https://raw.githubusercontent.com/BeneosBattlemaps/Beneos-Multilevel-Tokens/main/module.json",
-  "download": "https://github.com/BeneosBattlemaps/Beneos-Multilevel-Tokens/archive/refs/tags/v1.7.5.zip",
+  "download": "https://github.com/BeneosBattlemaps/Beneos-Multilevel-Tokens/archive/refs/tags/v13.0.0.zip",
   "authors": [
     {
       "name": "grandseiken"
