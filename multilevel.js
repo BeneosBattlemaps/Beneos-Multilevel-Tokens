@@ -1215,7 +1215,7 @@ class MultilevelTokens {
       <i class="fas fa-building"></i> ${game.i18n.localize("MLT.TabTitle")}
     </a>`;
     const contents = `
-    <div class="tab" data-group="sheet" data-tab="multilevel-tokens" data-application-part="multilevel-tokens">
+    <div class="tab" style="overflow-y: auto; max-height: 400px;" data-group="sheet" data-tab="multilevel-tokens" data-application-part="multilevel-tokens">
       <p class="notes">${game.i18n.localize("MLT.TabNotes")}</p>
       <div class="form-group">
         <label for="flags.multilevel-tokens.disabled">${game.i18n.localize("MLT.FieldDisableRegion")}</label>
