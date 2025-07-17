@@ -3,7 +3,11 @@
 All notable changes to this module will be documented in this file.
 
 ## Updates
-### 1.7.5 # 2024-6-25
+### 13.0.0 # 2025-05-20
+- Update: V13 compatibility
+- Removed: Added max Foundry Versions to older module versions to make them appear only in compatible versions.
+
+### 1.7.5 # 2024-06-25
 - Fixed a legacy bug leading to selecting shapes on the canvas when clicking on a teleport journal.
 
 ### 1.7.2 # 2024-06-21
