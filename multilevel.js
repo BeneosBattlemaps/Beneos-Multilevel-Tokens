@@ -1749,8 +1749,9 @@ class MultilevelTokens {
   }
 
   _onPreCreateCombatant(combatant, data, options, userId) {
-    const combat = combatant.parent;
-    const token = combat.scene.tokens.find(t => t.id === combatant.tokenId);
+    const combat = combatant.combat;
+    console.log("Combat", combatant, data, options, userId);
+    const token = combatant.token; // .scene.tokens.find(t => t.id === combatant.tokenId);
     if (!token || !this._isReplicatedToken(token)) {
       return true;
     }
