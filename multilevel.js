@@ -246,7 +246,7 @@ class MultilevelTokens {
 
   _getSourceTokenForReplicatedToken(scene, token) {
     const sourceScene = this._getSourceSceneForReplicatedToken(scene, token);
-    return sourceScene && sourceScene.tokens.find(t => t.id === token.flags[MLT.SCOPE][MLT.FLAG_SOURCE_TOKEN]);
+    return sourceScene?.tokens.find(t => t.id === token.flags[MLT.SCOPE][MLT.FLAG_SOURCE_TOKEN]);
   }
 
   _getAllLinkedCanvasTokens(token) {
@@ -457,7 +457,7 @@ class MultilevelTokens {
     const data = foundry.utils.duplicate(token);
     if (token.actor && !token.actorLink && !game.settings.get(MLT.SCOPE, MLT.SETTING_CLONE_ACTOR_LINK) && token.actor.effects) {
       data.actorData = { "effects": [] };
-      for (var i = 0; i < token.actor.effects.contents.length; ++i) {
+      for (let i = 0; i < token.actor.effects.contents.length; ++i) {
         data.actorData.effects.push({ "icon": token.actor.effects.contents[i].icon });
       }
     }
@@ -505,7 +505,7 @@ class MultilevelTokens {
     if (data.actorData && !data.actorLink && !game.settings.get(MLT.SCOPE, MLT.SETTING_CLONE_ACTOR_LINK)) {
       if (data.actorData.effects) {
         data.effects = [];
-        for (var i = 0; i < data.actorData.effects.length; ++i) {
+        for (let i = 0; i < data.actorData.effects.length; ++i) {
           data.effects.push(data.actorData.effects[i].icon);
         }
       }
@@ -676,7 +676,7 @@ class MultilevelTokens {
       return;
     }
     const updateData = this._getReplicatedTokenUpdateData(sourceScene, sourceToken, sourceRegion, targetScene, targetToken, targetRegion);
-    var filteredUpdateData = updateData;
+    let filteredUpdateData = updateData;
     if (keys) {
       filteredUpdateData = {};
       keys.forEach(k => {
@@ -806,7 +806,6 @@ class MultilevelTokens {
 
     let promise = Promise.resolve(null);
     for (const [sceneId, data] of Object.entries(requestBatch._scenes)) {
-      //console.log("Getting scene", sceneId, data, Token.embeddedName);
       const scene = game.scenes.get(sceneId);
       if (!scene) {
         continue;
@@ -816,39 +815,39 @@ class MultilevelTokens {
       }
       if (data.updateAnimateDiff.length) {
         promise = promise.then(() => scene.updateEmbeddedDocuments(Token.embeddedName, data.updateAnimateDiff,
-          Object.assign({ diff: true }, foundry.utils.duplicate(baseOptions))));
+          { diff: true, ...foundry.utils.duplicate(baseOptions) }));
       }
       if (data.updateAnimated.length) {
         promise = promise.then(() => scene.updateEmbeddedDocuments(Token.embeddedName, data.updateAnimated,
-          Object.assign({ diff: false }, foundry.utils.duplicate(baseOptions))));
+          { diff: false, ...foundry.utils.duplicate(baseOptions) }));
       }
       if (data.updateInstant.length) {
         promise = promise.then(() => scene.updateEmbeddedDocuments(Token.embeddedName, data.updateInstant,
-          Object.assign({ diff: false, animation: { duration: 1. / (1024 * 1024) } }, foundry.utils.duplicate(baseOptions))));
+          { diff: false, animation: { duration: 1. / (1024 * 1024) }, ...foundry.utils.duplicate(baseOptions) }));
       }
       if (data.updateTile.length) {
         promise = promise.then(() => scene.updateEmbeddedDocuments(Tile.embeddedName, data.updateTile,
-          Object.assign({ diff: false }, foundry.utils.duplicate(baseOptions))));
+          { diff: false, ...foundry.utils.duplicate(baseOptions) }));
       }
       if (data.updateWall.length) {
         promise = promise.then(() => scene.updateEmbeddedDocuments(Wall.embeddedName, data.updateWall,
-          Object.assign({ diff: false }, foundry.utils.duplicate(baseOptions))));
+          { diff: false, ...foundry.utils.duplicate(baseOptions) }));
       }
       if (data.updateDrawing.length) {
         promise = promise.then(() => scene.updateEmbeddedDocuments(Drawing.embeddedName, data.updateDrawing,
-          Object.assign({ diff: false }, foundry.utils.duplicate(baseOptions))));
+          { diff: false, ...foundry.utils.duplicate(baseOptions) }));
       }
       if (data.updateMapNote.length) {
         promise = promise.then(() => scene.updateEmbeddedDocuments(Note.embeddedName, data.updateMapNote,
-          Object.assign({ diff: false }, foundry.utils.duplicate(baseOptions))));
+          { diff: false, ...foundry.utils.duplicate(baseOptions) }));
       }
       if (data.updateLight.length) {
         promise = promise.then(() => scene.updateEmbeddedDocuments(AmbientLight.embeddedName, data.updateLight,
-          Object.assign({ diff: false }, foundry.utils.duplicate(baseOptions))));
+          { diff: false, ...foundry.utils.duplicate(baseOptions) }));
       }
       if (data.updateSound.length) {
         promise = promise.then(() => scene.updateEmbeddedDocuments(AmbientSound.embeddedName, data.updateSound,
-          Object.assign({ diff: false }, foundry.utils.duplicate(baseOptions))));
+          { diff: false, ...foundry.utils.duplicate(baseOptions) }));
       }
       if (data.create.length) {
         promise = promise.then(() => scene.createEmbeddedDocuments(foundry.canvas.placeables.Token.embeddedName, data.create, foundry.utils.duplicate(baseOptions)));
@@ -987,7 +986,7 @@ class MultilevelTokens {
 
   _overrideNotesDisplayForToken(scene, token) {
     const actor = game.actors.get(token.actorId);
-    if (!actor || !actor.testUserPermission(game.user, "OWNER")) {
+    if (!actor || !actor?.testUserPermission(game.user, "OWNER")) {
       return;
     }
 
@@ -1041,7 +1040,6 @@ class MultilevelTokens {
         }
       }
       const animate = this._hasRegionFlag(inRegion, "animate") || this._hasRegionFlag(outRegion, "animate");
-      //console.log("Output scene : ", outScene);
       const duplToken = foundry.utils.duplicate(token);
       if (Number(outRegion?.elevation) && Number(inRegion?.elevation)) { // Fix issue 21
         duplToken.elevation = duplToken.elevation - Number(inRegion.elevation) + Number(outRegion.elevation)
@@ -1124,7 +1122,7 @@ class MultilevelTokens {
           return true;
         }
         const actor = game.actors.get(token.actorId);
-        return actor && actor.testUserPermission(user, "OWNER");
+        return actor?.testUserPermission(user, "OWNER");
       });
       this._activateTeleport(scene, inRegion, tokens);
     }
@@ -1429,7 +1427,17 @@ class MultilevelTokens {
       mltTab.find("input").prop("disabled", true);
     }
     onChange();
-    // TODO: would be nice to have the update button always visible.
+    // Get the current active tab
+    let hasActive = false;
+    $(html).find(".tabs a").each((_, el) => {
+      if ($(el).hasClass("active")) {
+        hasActive = true;
+      }
+    });
+    if (!hasActive) {
+      $(html).find(".tabs a").last().addClass("active");
+      $(html).find(".tab").last().show()
+    }
   }
 
   _convertDrawingConfigUpdateData(data, update) {
@@ -1527,14 +1535,14 @@ class MultilevelTokens {
 
   _onPreUpdateDrawing(drawing, update, options, userId) {
     this._convertDrawingConfigUpdateData(drawing, update);
-    if (update.flags && update.flags[MLT.SCOPE]) {
+    if (update?.flags[MLT.SCOPE]) {
       this._onDeleteDrawing(drawing, options, userId);
     }
     return true;
   }
 
   _onUpdateDrawing(drawing, update, options, userId) {
-    if (update.flags && update.flags[MLT.SCOPE]) {
+    if (update?.flags[MLT.SCOPE]) {
       this._onCreateDrawing(drawing, options, userId);
     } else if (this._hasRegionFlag(drawing, "source") || this._hasRegionFlag(drawing, "target")) {
       const d = foundry.utils.duplicate(drawing);
