@@ -4,6 +4,9 @@ All notable changes to this module will be documented in this file.
 
 ## Updates
 
+### 13.0.2 # 2025-08-11
+- Fixed: A bug that prevented players from leaving a teleporter field on teleporters without note activation.
+
 ### 13.0.1 # 2025-07-18
 - Fixed: A CSS issue that was blocking some worlds with DD5
 
