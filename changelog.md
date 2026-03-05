@@ -3,6 +3,8 @@
 All notable changes to this module will be documented in this file.
 
 ## Updates
+### 13.0.3 # 2026-03-05
+- Fixed: Error message on specific maps
 
 ### 13.0.2 # 2025-08-11
 - Fixed: A bug that prevented players from leaving a teleporter field on teleporters without note activation.

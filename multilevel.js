@@ -1450,7 +1450,7 @@ class MultilevelTokens {
       return;
     }
     const flags = update.flags[MLT.SCOPE];
-    const oldFlags = data?.flags[MLT.SCOPE] ? data.flags[MLT.SCOPE] : {};
+    const oldFlags = data?.flags?.[MLT.SCOPE] ? data.flags[MLT.SCOPE] : {};
 
     if ("scale" in flags && (isNaN(flags.scale) || flags.scale <= 0)) {
       flags.scale = 1;
@@ -1535,14 +1535,14 @@ class MultilevelTokens {
 
   _onPreUpdateDrawing(drawing, update, options, userId) {
     this._convertDrawingConfigUpdateData(drawing, update);
-    if (update?.flags[MLT.SCOPE]) {
+    if (update?.flags?.[MLT.SCOPE]) {
       this._onDeleteDrawing(drawing, options, userId);
     }
     return true;
   }
 
   _onUpdateDrawing(drawing, update, options, userId) {
-    if (update?.flags[MLT.SCOPE]) {
+    if (update?.flags?.[MLT.SCOPE]) {
       this._onCreateDrawing(drawing, options, userId);
     } else if (this._hasRegionFlag(drawing, "source") || this._hasRegionFlag(drawing, "target")) {
       const d = foundry.utils.duplicate(drawing);
