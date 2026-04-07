@@ -15,13 +15,16 @@
       "flags": {}
     }
   ],
-  "version": "13.0.3",
+  "version": "14.0.0",
   "compatibility": {
     "minimum": "13",
-    "verified": "13"
+    "verified": "14"
   },
   "scripts": [
     "multilevel.js"
+  ],
+  "styles": [
+    "multilevel-tokens.css"
   ],
   "socket": true,
   "languages": [

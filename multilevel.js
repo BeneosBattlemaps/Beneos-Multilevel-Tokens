@@ -7,6 +7,8 @@ const MLT = {
   SETTING_AUTO_CHAT_BUBBLE: "autochatbubble",
   SETTING_CLONE_ACTOR_LINK: "cloneactorlink",
   SETTING_CLONE_MODULE_FLAGS: "clonemoduleflags",
+  SETTING_NOTIFY_GM_TELEPORT: "notifygmteleport",
+  SETTING_PAUSED: "paused",
   DEFAULT_TINT_COLOR: "#808080",
   FLAG_SOURCE_SCENE: "sscene",
   FLAG_SOURCE_TOKEN: "stoken",
@@ -92,6 +94,26 @@ class MltRequestBatch {
 
 class MultilevelTokens {
   constructor() {
+    // --- Master Control ---
+    game.settings.register(MLT.SCOPE, MLT.SETTING_PAUSED, {
+      name: game.i18n.localize("MLT.SettingPaused"),
+      hint: game.i18n.localize("MLT.SettingPausedHint"),
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: false,
+      onChange: () => game.multilevel?._onPauseSettingChanged()
+    });
+    // --- Teleportation ---
+    game.settings.register(MLT.SCOPE, MLT.SETTING_NOTIFY_GM_TELEPORT, {
+      name: game.i18n.localize("MLT.SettingNotifyGmTeleport"),
+      hint: game.i18n.localize("MLT.SettingNotifyGmTeleportHint"),
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true
+    });
+    // --- Token Cloning ---
     game.settings.register(MLT.SCOPE, MLT.SETTING_AUTO_TARGET, {
       name: game.i18n.localize("MLT.SettingAutoSyncTargets"),
       hint: game.i18n.localize("MLT.SettingAutoSyncTargetsHint"),
@@ -116,8 +138,6 @@ class MultilevelTokens {
       type: Boolean,
       default: true
     });
-    // TODO: maybe be necessary to decide this on a module-by-module basis. Could provide a way to let the user decide,
-    // and / or just bake in defaults for known cases where it matters.
     game.settings.register(MLT.SCOPE, MLT.SETTING_CLONE_MODULE_FLAGS, {
       name: game.i18n.localize("MLT.SettingCloneModuleFlags"),
       hint: game.i18n.localize("MLT.SettingCloneModuleFlagsHint"),
@@ -126,6 +146,8 @@ class MultilevelTokens {
       type: Boolean,
       default: true
     });
+    this._refreshNoteHookId = null;
+    Hooks.on("renderSettingsConfig", this._onRenderSettingsConfig.bind(this));
     Hooks.on("ready", this._onReady.bind(this));
     Hooks.on("createScene", this.refreshAll.bind(this));
     Hooks.on("updateScene", this._onUpdateScene.bind(this));
@@ -454,7 +476,7 @@ class MultilevelTokens {
   }
 
   _duplicateTokenData(token) {
-    const data = foundry.utils.duplicate(token);
+    const data = JSON.parse(JSON.stringify(token));
     if (token.actor && !token.actorLink && !game.settings.get(MLT.SCOPE, MLT.SETTING_CLONE_ACTOR_LINK) && token.actor.effects) {
       data.actorData = { "effects": [] };
       for (let i = 0; i < token.actor.effects.contents.length; ++i) {
@@ -488,7 +510,7 @@ class MultilevelTokens {
     const opacity = this._getRegionFlag(targetRegion, "opacity") === 0. ? 0. :
       this._getRegionFlag(targetRegion, "opacity") || 1.;
 
-    const data = foundry.utils.duplicate(token);
+    const data = JSON.parse(JSON.stringify(token));
     delete data._id;
     if (!game.settings.get(MLT.SCOPE, MLT.SETTING_CLONE_ACTOR_LINK)) {
       data.actorId = "";
@@ -811,46 +833,46 @@ class MultilevelTokens {
         continue;
       }
       if (data.delete.length) {
-        promise = promise.then(() => scene.deleteEmbeddedDocuments(foundry.canvas.placeables.Token.embeddedName, data.delete, foundry.utils.duplicate(baseOptions)));
+        promise = promise.then(() => scene.deleteEmbeddedDocuments("Token", data.delete, structuredClone(baseOptions)));
       }
       if (data.updateAnimateDiff.length) {
-        promise = promise.then(() => scene.updateEmbeddedDocuments(Token.embeddedName, data.updateAnimateDiff,
-          { diff: true, ...foundry.utils.duplicate(baseOptions) }));
+        promise = promise.then(() => scene.updateEmbeddedDocuments("Token", data.updateAnimateDiff,
+          { diff: true, ...structuredClone(baseOptions) }));
       }
       if (data.updateAnimated.length) {
-        promise = promise.then(() => scene.updateEmbeddedDocuments(Token.embeddedName, data.updateAnimated,
-          { diff: false, ...foundry.utils.duplicate(baseOptions) }));
+        promise = promise.then(() => scene.updateEmbeddedDocuments("Token", data.updateAnimated,
+          { diff: false, animation: { duration: 1000 }, ...structuredClone(baseOptions) }));
       }
       if (data.updateInstant.length) {
-        promise = promise.then(() => scene.updateEmbeddedDocuments(Token.embeddedName, data.updateInstant,
-          { diff: false, animation: { duration: 1. / (1024 * 1024) }, ...foundry.utils.duplicate(baseOptions) }));
+        promise = promise.then(() => scene.updateEmbeddedDocuments("Token", data.updateInstant,
+          { diff: false, animation: { duration: 1. / (1024 * 1024) }, ...structuredClone(baseOptions) }));
       }
       if (data.updateTile.length) {
-        promise = promise.then(() => scene.updateEmbeddedDocuments(Tile.embeddedName, data.updateTile,
-          { diff: false, ...foundry.utils.duplicate(baseOptions) }));
+        promise = promise.then(() => scene.updateEmbeddedDocuments("Tile", data.updateTile,
+          { diff: false, ...structuredClone(baseOptions) }));
       }
       if (data.updateWall.length) {
-        promise = promise.then(() => scene.updateEmbeddedDocuments(Wall.embeddedName, data.updateWall,
-          { diff: false, ...foundry.utils.duplicate(baseOptions) }));
+        promise = promise.then(() => scene.updateEmbeddedDocuments("Wall", data.updateWall,
+          { diff: false, ...structuredClone(baseOptions) }));
       }
       if (data.updateDrawing.length) {
-        promise = promise.then(() => scene.updateEmbeddedDocuments(Drawing.embeddedName, data.updateDrawing,
-          { diff: false, ...foundry.utils.duplicate(baseOptions) }));
+        promise = promise.then(() => scene.updateEmbeddedDocuments("Drawing", data.updateDrawing,
+          { diff: false, ...structuredClone(baseOptions) }));
       }
       if (data.updateMapNote.length) {
-        promise = promise.then(() => scene.updateEmbeddedDocuments(Note.embeddedName, data.updateMapNote,
-          { diff: false, ...foundry.utils.duplicate(baseOptions) }));
+        promise = promise.then(() => scene.updateEmbeddedDocuments("Note", data.updateMapNote,
+          { diff: false, ...structuredClone(baseOptions) }));
       }
       if (data.updateLight.length) {
-        promise = promise.then(() => scene.updateEmbeddedDocuments(AmbientLight.embeddedName, data.updateLight,
-          { diff: false, ...foundry.utils.duplicate(baseOptions) }));
+        promise = promise.then(() => scene.updateEmbeddedDocuments("AmbientLight", data.updateLight,
+          { diff: false, ...structuredClone(baseOptions) }));
       }
       if (data.updateSound.length) {
-        promise = promise.then(() => scene.updateEmbeddedDocuments(AmbientSound.embeddedName, data.updateSound,
-          { diff: false, ...foundry.utils.duplicate(baseOptions) }));
+        promise = promise.then(() => scene.updateEmbeddedDocuments("AmbientSound", data.updateSound,
+          { diff: false, ...structuredClone(baseOptions) }));
       }
       if (data.create.length) {
-        promise = promise.then(() => scene.createEmbeddedDocuments(foundry.canvas.placeables.Token.embeddedName, data.create, foundry.utils.duplicate(baseOptions)));
+        promise = promise.then(() => scene.createEmbeddedDocuments("Token", data.create, structuredClone(baseOptions)));
       }
     }
     for (const f of requestBatch._extraActions) {
@@ -994,7 +1016,7 @@ class MultilevelTokens {
       .some(r => this._hasRegionFlag(r, "activateViaMapNote"));
 
     const redrawNotes = () => {
-      if (canvas.notes._active) {
+      if (canvas.notes.active ?? canvas.notes._active) {
         canvas.notes.activate();
       } else {
         canvas.notes.deactivate();
@@ -1036,11 +1058,16 @@ class MultilevelTokens {
           position.x = Math.round(position.x);
           position.y = Math.round(position.y);
         } else {
-          position = new HexagonalGrid(options).getSnappedPosition(position.x, position.y);
+          const hexGrid = new HexagonalGrid(options);
+          if (hexGrid.getSnappedPosition) {
+            position = hexGrid.getSnappedPosition(position.x, position.y);
+          } else {
+            position = hexGrid.getSnappedPoint({x: position.x, y: position.y});
+          }
         }
       }
       const animate = this._hasRegionFlag(inRegion, "animate") || this._hasRegionFlag(outRegion, "animate");
-      const duplToken = foundry.utils.duplicate(token);
+      const duplToken = JSON.parse(JSON.stringify(token));
       if (Number(outRegion?.elevation) && Number(inRegion?.elevation)) { // Fix issue 21
         duplToken.elevation = duplToken.elevation - Number(inRegion.elevation) + Number(outRegion.elevation)
       } else {
@@ -1049,6 +1076,16 @@ class MultilevelTokens {
       // Previous elevation setting : duplToken.elevation = outRegion.elevation ?? duplToken.elevation;
       destinations.push([duplToken, outScene, animate, position]);
     }
+
+    // Play teleport sound from the In region (before batch executes)
+    const inSound = this._getRegionFlag(inRegion, "teleportSound");
+    if (inSound) {
+      const actor = tokens.length ? game.actors.get(tokens[0].actorId) : null;
+      const owners = actor ? game.users.filter(u => !u.isGM && actor.testUserPermission(u, "OWNER")).map(u => u.id) : [];
+      const recipients = owners.length ? owners : undefined;
+      AudioHelper.play({src: inSound, volume: 0.8}, recipients ? {recipients} : true);
+    }
+
     this._queueAsync(requestBatch => {
       for (const [token, outScene, animate, position] of destinations) {
         if (outScene === scene) {
@@ -1057,6 +1094,10 @@ class MultilevelTokens {
             x: position.x,
             y: position.y,
           }, animate, /* diff */ false);
+          requestBatch.extraAction(() => {
+            this._notifyGmTeleport(token.name, outScene.name, outScene.id, position.x, position.y);
+            this._playTeleportArrivalEffect(outScene, token._id);
+          });
           continue;
         }
         const id = token._id;
@@ -1076,15 +1117,16 @@ class MultilevelTokens {
         owners.forEach(user => {
           requestBatch.extraAction(() => game.socket.emit("pullToScene", outScene.id, user.id));
         })
-        // Play sound
-        requestBatch.extraAction(() => { });
+        requestBatch.extraAction(() => {
+          this._notifyGmTeleport(token.name, outScene.name, outScene.id, position.x, position.y);
+        });
       }
     });
   }
 
   // Teleport one token using any standard teleport regions. Returns true if a teleport occurred, false otherwise.
   _doTeleport(scene, token) {
-    if (!this._isPrimaryGamemaster()) {
+    if (!this._isPrimaryGamemaster() || game.settings.get(MLT.SCOPE, MLT.SETTING_PAUSED)) {
       return false;
     }
 
@@ -1101,7 +1143,7 @@ class MultilevelTokens {
 
   // Activate a map-note triggered teleport region.
   _doMapNoteTeleport(scene, mapNote, user) {
-    if (!this._isPrimaryGamemaster()) {
+    if (!this._isPrimaryGamemaster() || game.settings.get(MLT.SCOPE, MLT.SETTING_PAUSED)) {
       return false;
     }
 
@@ -1130,7 +1172,7 @@ class MultilevelTokens {
 
   // Teleport between levels within a scene using stair tokens.
   _doLevelTeleport(scene, token) {
-    if (!this._isPrimaryGamemaster() || token.name === MLT.TOKEN_STAIRS) {
+    if (!this._isPrimaryGamemaster() || token.name === MLT.TOKEN_STAIRS || game.settings.get(MLT.SCOPE, MLT.SETTING_PAUSED)) {
       return false;
     }
 
@@ -1207,148 +1249,155 @@ class MultilevelTokens {
       flags = data.document.flags[MLT.SCOPE];
     }
 
-    let newTab = foundry.utils.duplicate(data.tabs['text'])
+    let newTab = structuredClone(data.tabs['text'])
     newTab.id = "multilevel-tokens";
     newTab.label = game.i18n.localize("MLT.TabTitle");
     data.tabs["multilevel-tokens"] = newTab;
-    console.log("MLT: Drawing config tab", data);
 
     const tab = `<a data-action="tab" data-group="sheet" data-tab="multilevel-tokens">
       <i class="fas fa-building"></i> ${game.i18n.localize("MLT.TabTitle")}
     </a>`;
+    const t = (key) => game.i18n.localize(`MLT.${key}`);
+    const tip = (key) => `<i class="fas fa-question-circle mlt-tooltip" data-tooltip="${game.i18n.localize(`MLT.Tip${key}`)}" data-tooltip-direction="LEFT"></i>`;
+
     const contents = `
     <div class="tab" style="overflow-y: auto; max-height: 400px;" data-group="sheet" data-tab="multilevel-tokens" data-application-part="multilevel-tokens">
-      <p class="notes">${game.i18n.localize("MLT.TabNotes")}</p>
+      <p class="notes">${t("TabNotes")}</p>
       <div class="form-group">
-        <label for="flags.multilevel-tokens.disabled">${game.i18n.localize("MLT.FieldDisableRegion")}</label>
+        <label>${t("FieldDisableRegion")} ${tip("Disable")}</label>
         <input type="checkbox" name="flags.multilevel-tokens.disabled" data-dtype="Boolean"/>
-        <p class="notes">${game.i18n.localize("MLT.FieldDisableRegionNotes")}</p>
       </div>
       <div class="form-group">
-        <label for="flags.multilevel-tokens.local">${game.i18n.localize("MLT.FieldSceneLocal")}</label>
+        <label>${t("FieldSceneLocal")} ${tip("Local")}</label>
         <input type="checkbox" name="flags.multilevel-tokens.local" data-dtype="Boolean"/>
-        <p class="notes">${game.i18n.localize("MLT.FieldSceneLocalNotes")}</p>
       </div>
-      <h3 class="form-header">
-        <i class="fas fa-random"/></i> ${game.i18n.localize("MLT.SectionTeleports")}
-      </h3>
-      <p class="notes">${game.i18n.localize("MLT.SectionTeleportsNotes")}</p>
+      <h3 class="form-header"><i class="fas fa-random"></i> ${t("SectionTeleports")}</h3>
+      <p class="notes">${t("SectionTeleportsNotes")}</p>
       <div class="form-group">
-        <label for="flags.multilevel-tokens.in">${game.i18n.localize("MLT.FieldIn")}</label>
+        <label>${t("FieldIn")} ${tip("In")}</label>
         <input type="checkbox" name="flags.multilevel-tokens.in" data-dtype="Boolean"/>
       </div>
       <div class="form-group">
-        <label for="flags.multilevel-tokens.out">${game.i18n.localize("MLT.FieldOut")}</label>
+        <label>${t("FieldOut")} ${tip("Out")}</label>
         <input type="checkbox" name="flags.multilevel-tokens.out" data-dtype="Boolean"/>
       </div>
       <div class="form-group">
-        <label for="flags.multilevel-tokens.teleportId">${game.i18n.localize("MLT.FieldTeleportId")}</label>
-        <input type="text" name="flags.multilevel-tokens.teleportId" data-dtype="String"/>
+        <label>${t("FieldTeleportId")} ${tip("TeleportId")}</label>
+        <div class="form-fields">
+          <input type="text" name="flags.multilevel-tokens.teleportId" data-dtype="String"/>
+        </div>
       </div>
       <div id="mltTeleportSection">
         <hr>
         <div class="form-group">
-          <label for="flags.multilevel-tokens.snapToGrid">${game.i18n.localize("MLT.FieldSnapToGrid")}</label>
+          <label>${t("FieldSnapToGrid")} ${tip("SnapToGrid")}</label>
           <input type="checkbox" name="flags.multilevel-tokens.snapToGrid" data-dtype="Boolean"/>
-          <p class="notes">${game.i18n.localize("MLT.FieldSnapToGridNotes")}</p>
         </div>
         <div class="form-group">
-          <label for="flags.multilevel-tokens.animate">${game.i18n.localize("MLT.FieldAnimateMovement")}</label>
+          <label>${t("FieldAnimateMovement")} ${tip("Animate")}</label>
           <input type="checkbox" name="flags.multilevel-tokens.animate" data-dtype="Boolean"/>
         </div>
         <div class="form-group">
-          <label for="flags.multilevel-tokens.activateViaMapNote">${game.i18n.localize("MLT.FieldActivateViaMapNote")}</label>
+          <label>${t("FieldActivateViaMapNote")} ${tip("MapNote")}</label>
           <input type="checkbox" name="flags.multilevel-tokens.activateViaMapNote" data-dtype="Boolean"/>
-          <p class="notes">${game.i18n.localize("MLT.FieldActivateViaMapNoteNotes")}</p>
+        </div>
+        <div class="form-group">
+          <label>${t("FieldTeleportSound")} ${tip("TeleportSound")}</label>
+          <div class="form-fields">
+            <input type="text" name="flags.multilevel-tokens.teleportSound" data-dtype="String" placeholder="sounds/doors/door.ogg"/>
+          </div>
         </div>
       </div>
-      <h3 class="form-header">
-        <i class="far fa-clone"/></i> ${game.i18n.localize("MLT.SectionTokenCloning")}
-      </h3>
-      <p class="notes">${game.i18n.localize("MLT.SectionTokenCloningNotes")}</p>
+      <h3 class="form-header"><i class="far fa-clone"></i> ${t("SectionTokenCloning")}</h3>
+      <p class="notes">${t("SectionTokenCloningNotes")}</p>
       <div class="form-group">
-        <label for="flags.multilevel-tokens.source">${game.i18n.localize("MLT.FieldSource")}</label>
+        <label>${t("FieldSource")} ${tip("Source")}</label>
         <input type="checkbox" name="flags.multilevel-tokens.source" data-dtype="Boolean"/>
       </div>
       <div class="form-group">
-        <label for="flags.multilevel-tokens.target">${game.i18n.localize("MLT.FieldTarget")}</label>
+        <label>${t("FieldTarget")} ${tip("Target")}</label>
         <input type="checkbox" name="flags.multilevel-tokens.target" data-dtype="Boolean"/>
       </div>
       <div class="form-group">
-        <label for="flags.multilevel-tokens.cloneId">${game.i18n.localize("MLT.FieldCloneId")}</label>
-        <input type="text" name="flags.multilevel-tokens.cloneId" data-dtype="String"/>
+        <label>${t("FieldCloneId")} ${tip("CloneId")}</label>
+        <div class="form-fields">
+          <input type="text" name="flags.multilevel-tokens.cloneId" data-dtype="String"/>
+        </div>
       </div>
       <div id="mltTargetSection">
         <hr>
-        <p class="notes">${game.i18n.localize("MLT.SectionTargetRegionNotes")}</p>
+        <p class="notes">${t("SectionTargetRegionNotes")}</p>
         <div class="form-group">
-          <label for="flags.multilevel-tokens.tintColor">${game.i18n.localize("MLT.FieldClonedTokenTintColor")}</label>
+          <label>${t("FieldClonedTokenTintColor")}</label>
           <div class="form-fields">
             <input class="color" type="text" name="flags.multilevel-tokens.tintColor">
             <input type="color" name="flags.multilevel-tokens.tintColorPicker" data-edit="flags.multilevel-tokens.tintColor">
           </div>
         </div>
         <div class="form-group">
-          <label for="flags.multilevel-tokens.opacity">${game.i18n.localize("MLT.FieldClonedTokenOpacity")}</label>
+          <label>${t("FieldClonedTokenOpacity")}</label>
           <div class="form-fields">
             <input type="range" name="flags.multilevel-tokens.opacity" value="1" min="0" max="1" step="0.1">
             <span class="range-value">1</span>
           </div>
         </div>
         <div class="form-group">
-          <label for="flags.multilevel-tokens.scale">${game.i18n.localize("MLT.FieldClonedTokenScale")}</label>
-          <input type="text" name="flags.multilevel-tokens.scale" value="1" data-dtype="Number"/>
+          <label>${t("FieldClonedTokenScale")}</label>
+          <div class="form-fields">
+            <input type="text" name="flags.multilevel-tokens.scale" value="1" data-dtype="Number"/>
+          </div>
         </div>
         <div class="form-group">
-          <label for="flags.multilevel-tokens.flipX">${game.i18n.localize("MLT.FieldMirrorHorizontally")}</label>
+          <label>${t("FieldMirrorHorizontally")} ${tip("FlipX")}</label>
           <input type="checkbox" name="flags.multilevel-tokens.flipX" data-dtype="Boolean"/>
         </div>
         <div class="form-group">
-          <label for="flags.multilevel-tokens.flipY">${game.i18n.localize("MLT.FieldMirrorVertically")}</label>
+          <label>${t("FieldMirrorVertically")} ${tip("FlipY")}</label>
           <input type="checkbox" name="flags.multilevel-tokens.flipY" data-dtype="Boolean"/>
         </div>
         <div class="form-group">
-          <label for="flags.multilevel-tokens.flipTrue">${game.i18n.localize("MLT.FieldMirrorTrue")}</label>
+          <label>${t("FieldMirrorTrue")} ${tip("TrueMirror")}</label>
           <input type="checkbox" name="flags.multilevel-tokens.flipTrue" data-dtype="Boolean"/>
         </div>
       </div>
-      <h3 class="form-header">
-        <i class="fas fa-magic"/></i> ${game.i18n.localize("MLT.SectionMacroTriggers")}
-      </h3>
-      <p class="notes">${game.i18n.localize("MLT.SectionMacroTriggersNotes")}</p>
+      <h3 class="form-header"><i class="fas fa-magic"></i> ${t("SectionMacroTriggers")}</h3>
+      <p class="notes">${t("SectionMacroTriggersNotes")}</p>
       <div class="form-group">
-        <label for="flags.multilevel-tokens.macroEnter">${game.i18n.localize("MLT.FieldTriggerOnEnter")}</label>
+        <label>${t("FieldTriggerOnEnter")} ${tip("MacroEnter")}</label>
         <input type="checkbox" name="flags.multilevel-tokens.macroEnter" data-dtype="Boolean"/>
       </div>
       <div class="form-group">
-        <label for="flags.multilevel-tokens.macroLeave">${game.i18n.localize("MLT.FieldTriggerOnLeave")}</label>
+        <label>${t("FieldTriggerOnLeave")} ${tip("MacroLeave")}</label>
         <input type="checkbox" name="flags.multilevel-tokens.macroLeave" data-dtype="Boolean"/>
       </div>
       <div class="form-group">
-        <label for="flags.multilevel-tokens.macroMove">${game.i18n.localize("MLT.FieldTriggerOnMove")}</label>
+        <label>${t("FieldTriggerOnMove")} ${tip("MacroMove")}</label>
         <input type="checkbox" name="flags.multilevel-tokens.macroMove" data-dtype="Boolean"/>
       </div>
-      <p class="notes">${game.i18n.localize("MLT.SectionMacroEventsNotes")}</p>
+      <p class="notes">${t("SectionMacroEventsNotes")}</p>
       <div class="form-group">
-        <label for="flags.multilevel-tokens.macroName">${game.i18n.localize("MLT.FieldMacroName")}</label>
-        <input type="text" name="flags.multilevel-tokens.macroName" data-dtype="String"/>
+        <label>${t("FieldMacroName")}</label>
+        <div class="form-fields">
+          <input type="text" name="flags.multilevel-tokens.macroName" data-dtype="String"/>
+        </div>
       </div>
       <div class="form-group">
-        <label for="flags.multilevel-tokens.macroArgs">${game.i18n.localize("MLT.FieldAdditionalArguments")}</label>
-        <input type="text" name="flags.multilevel-tokens.macroArgs" data-dtype="String"/>
-        <p class="notes">${game.i18n.localize("MLT.FieldAdditionalArgumentsNotes")}</p>
+        <label>${t("FieldAdditionalArguments")} ${tip("MacroArgs")}</label>
+        <div class="form-fields">
+          <input type="text" name="flags.multilevel-tokens.macroArgs" data-dtype="String"/>
+        </div>
       </div>
-      <h3 class="form-header">
-        <i class="fas fa-bars"/></i> ${game.i18n.localize("MLT.SectionLevels")}
-      </h3>
-      <p class="notes">${game.i18n.localize("MLT.SectionLevelsNotes")}</p>
+      <h3 class="form-header"><i class="fas fa-bars"></i> ${t("SectionLevels")}</h3>
+      <p class="notes">${t("SectionLevelsNotes")}</p>
       <div class="form-group">
-        <label for="flags.multilevel-tokens.level">${game.i18n.localize("MLT.FieldLevelRegion")}</label>
+        <label>${t("FieldLevelRegion")} ${tip("Level")}</label>
         <input type="checkbox" name="flags.multilevel-tokens.level" data-dtype="Boolean"/>
       </div>
       <div class="form-group">
-        <label for="flags.multilevel-tokens.levelNumber">${game.i18n.localize("MLT.FieldLevelNumber")}</label>
-        <input type="text" name="flags.multilevel-tokens.levelNumber" value="0" data-dtype="Number"/>
+        <label>${t("FieldLevelNumber")} ${tip("LevelNumber")}</label>
+        <div class="form-fields">
+          <input type="text" name="flags.multilevel-tokens.levelNumber" value="0" data-dtype="Number"/>
+        </div>
       </div>
     </div>`;
 
@@ -1364,6 +1413,7 @@ class MultilevelTokens {
     input("animate").prop("checked", flags.animate);
     input("activateViaMapNote").prop("checked", flags.activateViaMapNote);
     input("snapToGrid").prop("checked", "snapToGrid" in flags ? flags.snapToGrid : true);
+    input("teleportSound").prop("value", flags.teleportSound || "");
     input("source").prop("checked", flags.source);
     input("target").prop("checked", flags.target);
     input("cloneId").prop("value", flags.cloneId);
@@ -1408,6 +1458,7 @@ class MultilevelTokens {
       enable("animate", isTeleport);
       enable("activateViaMapNote", isIn);
       enable("snapToGrid", isOut);
+      enable("teleportSound", isTeleport);
       enable("cloneId", isSource || isTarget);
       enable("tintColor", isTarget);
       enable("tintColorPicker", isTarget);
@@ -1468,7 +1519,7 @@ class MultilevelTokens {
     }
 
     if (!manualText && (this._flagsToLabel(oldFlags) === data.text || !data.text)) {
-      const mergedFlags = Object.assign(foundry.utils.duplicate(oldFlags), update.flags[MLT.SCOPE]);
+      const mergedFlags = Object.assign(structuredClone(oldFlags), update.flags[MLT.SCOPE]);
       update.text = this._flagsToLabel(mergedFlags);
     }
   }
@@ -1494,6 +1545,69 @@ class MultilevelTokens {
     });
   }
 
+  _isNoteInTeleportRegion(scene, noteDoc) {
+    const point = { x: noteDoc.x, y: noteDoc.y };
+    return scene.drawings.some(d =>
+      this._hasRegionFlag(d, "in") &&
+      this._hasRegionFlag(d, "activateViaMapNote") &&
+      this._isPointInRegion(point, d)
+    );
+  }
+
+  _onRefreshNote(note) {
+    if (game.user.isGM) return;
+    const scene = note.scene ?? canvas.scene;
+    if (this._isNoteInTeleportRegion(scene, note.document)) {
+      note.visible = false;
+    }
+  }
+
+  _onPauseSettingChanged() {
+    const paused = game.settings.get(MLT.SCOPE, MLT.SETTING_PAUSED);
+    if (paused && !this._refreshNoteHookId) {
+      this._refreshNoteHookId = Hooks.on("refreshNote", this._onRefreshNote.bind(this));
+    } else if (!paused && this._refreshNoteHookId) {
+      Hooks.off("refreshNote", this._refreshNoteHookId);
+      this._refreshNoteHookId = null;
+    }
+    if (canvas.ready && canvas.notes) {
+      canvas.notes.placeables.forEach(n => n.renderFlags.set({refreshVisibility: true}));
+    }
+  }
+
+  _playTeleportArrivalEffect(scene, tokenId) {
+    if (canvas.scene !== scene) return;
+    setTimeout(() => {
+      const tokenObj = canvas.tokens.get(tokenId);
+      if (!tokenObj) return;
+      tokenObj.alpha = 0;
+      CanvasAnimation.animate([
+        { parent: tokenObj, attribute: "alpha", to: 1 }
+      ], { duration: 400, easing: CanvasAnimation.easeInOutCosine });
+    }, 100);
+  }
+
+  _notifyGmTeleport(tokenName, sceneName, sceneId, tokenX, tokenY) {
+    if (!this._isPrimaryGamemaster()) return;
+    if (!game.settings.get(MLT.SCOPE, MLT.SETTING_NOTIFY_GM_TELEPORT)) return;
+    const msg = game.i18n.localize("MLT.NotifTeleportMessage")
+      .replace("{tokenName}", tokenName)
+      .replace("{sceneName}", sceneName);
+    const followLabel = game.i18n.localize("MLT.NotifTeleportFollow");
+    const content = `<div class="mlt-teleport-notification">
+      <div class="mlt-notif-header"><i class="fas fa-random"></i> ${game.i18n.localize("MLT.NotifTeleportHeader")}</div>
+      <div class="mlt-notif-details">${msg}</div>
+      <a class="mlt-follow-btn" data-mlt-scene="${sceneId}" data-mlt-x="${tokenX}" data-mlt-y="${tokenY}">
+        <i class="fas fa-eye"></i> ${followLabel}
+      </a>
+    </div>`;
+    ChatMessage.create({
+      content: content,
+      whisper: game.users.filter(u => u.isGM).map(u => u.id),
+      speaker: { alias: "Multilevel Tokens" },
+    });
+  }
+
   _onReady() {
     // Replications might be out of sync if there was previously no GM and we just logged in.
     if (this._isOnlyGamemaster()) {
@@ -1503,6 +1617,24 @@ class MultilevelTokens {
       this._initializeLastTeleportAndMacroTracking();
       game.socket.on(`module.${MLT.SCOPE}`, this._onSocket.bind(this));
     }
+    // Activate pause mode hook if setting is already enabled
+    if (game.settings.get(MLT.SCOPE, MLT.SETTING_PAUSED)) {
+      this._onPauseSettingChanged();
+    }
+    // Register click handler for teleport follow buttons in chat
+    $(document).on("click", ".mlt-follow-btn", async (ev) => {
+      ev.preventDefault();
+      const btn = ev.currentTarget;
+      const sceneId = btn.dataset.mltScene;
+      const x = Number(btn.dataset.mltX);
+      const y = Number(btn.dataset.mltY);
+      const targetScene = game.scenes.get(sceneId);
+      if (!targetScene) return;
+      if (targetScene !== game.scenes.viewed) {
+        await targetScene.view();
+      }
+      canvas.animatePan({ x, y, scale: 1, duration: 500 });
+    });
   }
 
   _onUpdateScene(scene) {
@@ -1524,11 +1656,11 @@ class MultilevelTokens {
 
   _onCreateDrawing(drawing, options, userId) {
     if (this._hasRegionFlag(drawing, "source")) {
-      const d = foundry.utils.duplicate(drawing);
+      const d = JSON.parse(JSON.stringify(drawing));
       this._queueAsync(requestBatch => this._replicateAllFromSourceRegion(requestBatch, drawing.parent, d));
     }
     if (this._hasRegionFlag(drawing, "target")) {
-      const d = foundry.utils.duplicate(drawing);
+      const d = JSON.parse(JSON.stringify(drawing));
       this._queueAsync(requestBatch => this._replicateAllToTargetRegion(requestBatch, drawing.parent, d));
     }
   }
@@ -1545,7 +1677,7 @@ class MultilevelTokens {
     if (update?.flags?.[MLT.SCOPE]) {
       this._onCreateDrawing(drawing, options, userId);
     } else if (this._hasRegionFlag(drawing, "source") || this._hasRegionFlag(drawing, "target")) {
-      const d = foundry.utils.duplicate(drawing);
+      const d = JSON.parse(JSON.stringify(drawing));
       this._queueAsync(requestBatch => {
         if (this._hasRegionFlag(d, "source")) {
           this._updateAllReplicatedTokensForSourceRegion(requestBatch, drawing.parent, d);
@@ -1559,7 +1691,7 @@ class MultilevelTokens {
 
   _onDeleteDrawing(drawing, options, userId) {
     if (this._hasRegionFlag(drawing, ["source", "target"])) {
-      const d = foundry.utils.duplicate(drawing);
+      const d = JSON.parse(JSON.stringify(drawing));
       this._queueAsync(requestBatch => this._removeReplicationsForRegion(requestBatch, drawing.parent, d));
     }
   }
@@ -1581,11 +1713,16 @@ class MultilevelTokens {
         }, 100); // Légère attente pour que le token soit bien placé
       }
     } else if (!token.actorLink && game.settings.get(MLT.SCOPE, MLT.SETTING_CLONE_ACTOR_LINK)) {
-      // Manually hack-link the actors.
+      // Manually hack-link the actors (v13 legacy, safely guarded for v14+).
       const sourceToken = this._getSourceTokenForReplicatedToken(token.parent, token);
-      token.actorData = sourceToken.actorData;
-      token._actor = sourceToken._actor;
-      token.actor = sourceToken.actor;
+      if (sourceToken) {
+        try {
+          if ("actorData" in token) token.actorData = sourceToken.actorData;
+          if ("_actor" in token) token._actor = sourceToken._actor;
+        } catch(e) {
+          // v14+: actor linking handled through actorId in create data
+        }
+      }
     }
   }
 
@@ -1600,9 +1737,9 @@ class MultilevelTokens {
     const sourceScene = this._getSourceSceneForReplicatedToken(token.parent, token);
     const sourceToken = this._getSourceTokenForReplicatedToken(token.parent, token);
     if (sourceScene && sourceToken) {
-      const newUpdate = foundry.utils.duplicate(update);
+      const newUpdate = structuredClone(update);
       newUpdate._id = sourceToken._id;
-      sourceScene.updateEmbeddedDocuments(Token.embeddedName, [newUpdate], options);
+      sourceScene.updateEmbeddedDocuments("Token", [newUpdate], options);
     }
     return false;
   }
@@ -1729,6 +1866,7 @@ class MultilevelTokens {
   }
 
   _onHoverNote(note, hover) {
+    if (game.settings.get(MLT.SCOPE, MLT.SETTING_PAUSED)) return;
     if (!hover || !this._getTeleportRegionsForMapNote(note.scene, note).length) {
       return;
     }
@@ -1769,7 +1907,9 @@ class MultilevelTokens {
     }
     const sourceToken = this._getSourceTokenForReplicatedToken(combat.scene, token);
     if (sourceToken) {
-      const activeCombatant = combat.getCombatantByToken(sourceToken._id);
+      const activeCombatant = combat.getCombatantByToken
+        ? combat.getCombatantByToken(sourceToken._id)
+        : combat.getCombatantsByToken?.(sourceToken._id)?.[0];
       if (activeCombatant) {
         combat.deleteEmbeddedDocuments("Combatant", [activeCombatant._id]);
       } else {
@@ -1806,9 +1946,25 @@ class MultilevelTokens {
     }
     this._getAllLinkedCanvasTokens(token).forEach(t => {
       if (t.scene !== scene || t._id !== token._id) {
-        canvas.hud.bubbles.say(t, message.content, { emote: message.type === CONST.CHAT_MESSAGE_TYPES_EMOTE });
+        canvas.hud.bubbles.say(t, message.content, { emote: (message.style ?? message.type) === (CONST.CHAT_MESSAGE_STYLES?.EMOTE ?? CONST.CHAT_MESSAGE_TYPES?.EMOTE) });
       }
     })
+  }
+
+  _onRenderSettingsConfig(app, html) {
+    const mltSection = $(html).find(`[data-setting-id="${MLT.SCOPE}.${MLT.SETTING_PAUSED}"]`).closest(".form-group");
+    if (!mltSection.length) return;
+    // Add divider after Pause MLT setting
+    mltSection.after(`<hr class="mlt-settings-divider">`);
+    // Add section headers
+    const notifySection = $(html).find(`[data-setting-id="${MLT.SCOPE}.${MLT.SETTING_NOTIFY_GM_TELEPORT}"]`).closest(".form-group");
+    if (notifySection.length) {
+      notifySection.before(`<h3 class="mlt-settings-header"><i class="fas fa-random"></i> ${game.i18n.localize("MLT.SettingsHeaderTeleport")}</h3>`);
+    }
+    const targetSection = $(html).find(`[data-setting-id="${MLT.SCOPE}.${MLT.SETTING_AUTO_TARGET}"]`).closest(".form-group");
+    if (targetSection.length) {
+      targetSection.before(`<h3 class="mlt-settings-header"><i class="far fa-clone"></i> ${game.i18n.localize("MLT.SettingsHeaderCloning")}</h3>`);
+    }
   }
 
   _onRenderDrawingConfig(app, html, data) {
