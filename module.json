@@ -4,7 +4,7 @@
   "description": "Adds several helpful token automation features, particularly (but not only) suited to maps with multiple levels. Teleport tokens to another location when they move into a particular region (e.g. from the bottom of a staircase to the top). Clone tokens from one region to another, syncing movement and other property updates (e.g. allowing players to \"see\" what is happening on floors below). Trigger macros when a token enters or leaves a particular region. See page at URL below for full usage instructions.",
   "url": "https://github.com/BeneosBattlemaps/Beneos-Multilevel-Tokens/",
   "manifest": "https://raw.githubusercontent.com/BeneosBattlemaps/Beneos-Multilevel-Tokens/main/module.json",
-  "download": "https://github.com/BeneosBattlemaps/Beneos-Multilevel-Tokens/archive/refs/tags/v14.0.0.zip",
+  "download": "https://github.com/BeneosBattlemaps/Beneos-Multilevel-Tokens/archive/refs/tags/v14.1.0.zip",
   "authors": [
     {
       "name": "grandseiken",
@@ -13,13 +13,9 @@
     {
       "name": "LeRatierBretonnien",
       "flags": {}
-    },
-    {
-      "name": "Beneos",
-      "flags": {}
     }
   ],
-  "version": "14.0.0",
+  "version": "14.1.0",
   "compatibility": {
     "minimum": "13",
     "verified": "14"
@@ -32,41 +28,18 @@
   ],
   "socket": true,
   "languages": [
-    {
-      "lang": "de",
-      "name": "Deutsch",
-      "path": "lang/de.json",
-      "flags": {}
-    },
-    {
-      "lang": "en",
-      "name": "English",
-      "path": "lang/en.json",
-      "flags": {}
-    },
-    {
-      "lang": "es",
-      "name": "Español",
-      "path": "lang/es.json",
-      "flags": {}
-    },
-    {
-      "lang": "fr",
-      "name": "French",
-      "path": "lang/fr.json",
-      "flags": {}
-    },
-    {
-      "lang": "ja",
-      "name": "日本語",
-      "path": "lang/ja.json",
-      "flags": {}
-    },
-    {
-      "lang": "ko",
-      "name": "한국어",
-      "path": "lang/ko.json",
-      "flags": {}
-    }
+    { "lang": "en",    "name": "English",              "path": "lang/en.json" },
+    { "lang": "de",    "name": "Deutsch",              "path": "lang/de.json" },
+    { "lang": "fr",    "name": "Français",             "path": "lang/fr.json" },
+    { "lang": "es",    "name": "Español",              "path": "lang/es.json" },
+    { "lang": "it",    "name": "Italiano",             "path": "lang/it.json" },
+    { "lang": "pt-BR", "name": "Português (Brasil)",   "path": "lang/pt-BR.json" },
+    { "lang": "pt-PT", "name": "Português (Portugal)", "path": "lang/pt-PT.json" },
+    { "lang": "pl",    "name": "Polski",               "path": "lang/pl.json" },
+    { "lang": "cs",    "name": "Čeština",              "path": "lang/cs.json" },
+    { "lang": "ca",    "name": "Català",               "path": "lang/ca.json" },
+    { "lang": "ja",    "name": "日本語",                 "path": "lang/ja.json" },
+    { "lang": "ko",    "name": "한국어",                  "path": "lang/ko.json" },
+    { "lang": "zh-TW", "name": "繁體中文",               "path": "lang/zh-TW.json" }
   ]
 }
