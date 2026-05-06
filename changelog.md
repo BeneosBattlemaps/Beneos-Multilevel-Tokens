@@ -3,6 +3,9 @@
 All notable changes to this module will be documented in this file.
 
 ## Updates
+### 14.1.1 # 2026-05-06
+- **New:** We have added teleportation sound effects. All MLT fields now include a select field with a variety of sound effects that players and Game Masters will hear when using the teleporter, for maximum immersion.
+
 ### 14.1.0 # 2026-04-21 — Localization Overhaul
 - **New:** Language coverage extended to 13 languages, matching `beneos-module` and `poi-teleport`: English, Deutsch, Français, Español, Italiano, Português (Brasil), Português (Portugal), Polski, Čeština, Català, 日本語, 한국어, 繁體中文.
 - **Changed:** All existing language files (de/en/es/fr/ja/ko) rebuilt against the current key set (80 keys). (SettingPaused, SettingNotifyGmTeleport, all tooltip keys `MLT.Tip*`, `SettingsHeaderTeleport/Cloning`, `NotifTeleport*`, and Field*Opacity/*Scale). Users of these languages now get a fully localized UI instead of the partial English fallback.
