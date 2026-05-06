@@ -37,6 +37,43 @@
   margin-top: 0;
 }
 
+/* Sound select + preview button row */
+.tab[data-tab="multilevel-tokens"] .mlt-sound-fields {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tab[data-tab="multilevel-tokens"] .mlt-sound-select {
+  flex: 1;
+}
+
+.tab[data-tab="multilevel-tokens"] .mlt-sound-preview {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #7a7971;
+  background: #4b4a44;
+  color: #f0f0e0;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.tab[data-tab="multilevel-tokens"] .mlt-sound-preview:hover:not(:disabled) {
+  background: #ff6400;
+  border-color: #ff6400;
+  color: #fff;
+}
+
+.tab[data-tab="multilevel-tokens"] .mlt-sound-preview:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* ==========================================================================
    Multilevel Tokens - GM Teleport Notification Chat Styles
    ========================================================================== */

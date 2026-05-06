@@ -177,6 +177,7 @@ class MultilevelTokens {
     this._asyncQueue = null;
     this._asyncCount = 0;
     this._overrideNotesDisplay = false;
+    this._availableSfx = [];
     console.log(MLT.LOG_PREFIX, "Initialized");
   }
 
@@ -1077,13 +1078,26 @@ class MultilevelTokens {
       destinations.push([duplToken, outScene, animate, position]);
     }
 
-    // Play teleport sound from the In region (before batch executes)
+    // Play teleport sound from the In region (before batch executes).
+    // Recipients = all active owners of any teleported actor, plus all active GMs
+    // (the triggering DM should hear the cue even when not owning the moved actor).
     const inSound = this._getRegionFlag(inRegion, "teleportSound");
     if (inSound) {
-      const actor = tokens.length ? game.actors.get(tokens[0].actorId) : null;
-      const owners = actor ? game.users.filter(u => !u.isGM && actor.testUserPermission(u, "OWNER")).map(u => u.id) : [];
-      const recipients = owners.length ? owners : undefined;
-      AudioHelper.play({src: inSound, volume: 0.8}, recipients ? {recipients} : true);
+      const recipients = new Set();
+      for (const t of tokens) {
+        const actor = game.actors.get(t.actorId);
+        if (!actor) continue;
+        for (const u of game.users) {
+          if (u.active && !u.isGM && actor.testUserPermission(u, "OWNER")) {
+            recipients.add(u.id);
+          }
+        }
+      }
+      for (const u of game.users) {
+        if (u.active && u.isGM) recipients.add(u.id);
+      }
+      const ids = Array.from(recipients);
+      AudioHelper.play({src: inSound, volume: 0.8}, ids.length ? {recipients: ids} : true);
     }
 
     this._queueAsync(requestBatch => {
@@ -1260,6 +1274,10 @@ class MultilevelTokens {
     const t = (key) => game.i18n.localize(`MLT.${key}`);
     const tip = (key) => `<i class="fas fa-question-circle mlt-tooltip" data-tooltip="${game.i18n.localize(`MLT.Tip${key}`)}" data-tooltip-direction="LEFT"></i>`;
 
+    const sfxOptionsHtml = this._availableSfx
+      .map(s => `<option value="${s.path}">${s.label}</option>`)
+      .join("");
+
     const contents = `
     <div class="tab" style="overflow-y: auto; max-height: 400px;" data-group="sheet" data-tab="multilevel-tokens" data-application-part="multilevel-tokens">
       <p class="notes">${t("TabNotes")}</p>
@@ -1303,8 +1321,14 @@ class MultilevelTokens {
         </div>
         <div class="form-group">
           <label>${t("FieldTeleportSound")} ${tip("TeleportSound")}</label>
-          <div class="form-fields">
-            <input type="text" name="flags.multilevel-tokens.teleportSound" data-dtype="String" placeholder="sounds/doors/door.ogg"/>
+          <div class="form-fields mlt-sound-fields">
+            <select name="flags.multilevel-tokens.teleportSound" data-dtype="String" class="mlt-sound-select">
+              <option value="">— ${t("SoundNone")} —</option>
+              ${sfxOptionsHtml}
+            </select>
+            <button type="button" class="mlt-sound-preview" data-tooltip="${t("ButtonPreviewSound")}">
+              <i class="fas fa-play"></i>
+            </button>
           </div>
         </div>
       </div>
@@ -1404,7 +1428,7 @@ class MultilevelTokens {
     $(html).find(".tabs a").last().after(tab);
     $(html).find(".tab").last().after(contents);
     const mltTab = $(html).find(".tab").last();
-    const input = (name) => mltTab.find(`input[name="flags.multilevel-tokens.${name}"]`);
+    const input = (name) => mltTab.find(`[name="flags.multilevel-tokens.${name}"]`);
     const group = (name) => mltTab.find(`#${name}`);
 
     input("in").prop("checked", flags.in);
@@ -1413,7 +1437,20 @@ class MultilevelTokens {
     input("animate").prop("checked", flags.animate);
     input("activateViaMapNote").prop("checked", flags.activateViaMapNote);
     input("snapToGrid").prop("checked", "snapToGrid" in flags ? flags.snapToGrid : true);
-    input("teleportSound").prop("value", flags.teleportSound || "");
+    const sfxSelect = input("teleportSound");
+    const currentSound = flags.teleportSound || "";
+    if (currentSound && !this._availableSfx.some(s => s.path === currentSound)) {
+      // Preserve legacy custom path so saved scenes don't lose data on first edit.
+      const customLabel = game.i18n.format("MLT.SoundCustom", { file: currentSound.split("/").pop() });
+      sfxSelect.prepend(`<option value="${currentSound}">${customLabel}</option>`);
+    }
+    sfxSelect.val(currentSound);
+    mltTab.find(".mlt-sound-preview").on("click", (ev) => {
+      ev.preventDefault();
+      const path = sfxSelect.val();
+      if (!path) return;
+      AudioHelper.play({ src: path, volume: 0.8 }, false);
+    });
     input("source").prop("checked", flags.source);
     input("target").prop("checked", flags.target);
     input("cloneId").prop("value", flags.cloneId);
@@ -1459,6 +1496,7 @@ class MultilevelTokens {
       enable("activateViaMapNote", isIn);
       enable("snapToGrid", isOut);
       enable("teleportSound", isTeleport);
+      mltTab.find(".mlt-sound-preview").prop("disabled", !isTeleport);
       enable("cloneId", isSource || isTarget);
       enable("tintColor", isTarget);
       enable("tintColorPicker", isTarget);
@@ -1473,9 +1511,9 @@ class MultilevelTokens {
       enable("local", isTeleport || isSource || isTarget);
     };
     if (this._isUserGamemaster(game.user.id)) {
-      mltTab.find("input").on("change", onChange);
+      mltTab.find("input, select").on("change", onChange);
     } else {
-      mltTab.find("input").prop("disabled", true);
+      mltTab.find("input, select, button.mlt-sound-preview").prop("disabled", true);
     }
     onChange();
     // Get the current active tab
@@ -1635,6 +1673,29 @@ class MultilevelTokens {
       }
       canvas.animatePan({ x, y, scale: 1, duration: 500 });
     });
+    this._loadAvailableSfx();
+  }
+
+  async _loadAvailableSfx() {
+    const dir = `modules/${MLT.SCOPE}/sfx`;
+    try {
+      const result = await FilePicker.browse("data", dir);
+      const files = (result?.files || []).filter(f => /\.ogg$/i.test(f));
+      this._availableSfx = files
+        .map(path => ({ path, label: this._formatSfxLabel(path.split("/").pop()) }))
+        .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
+    } catch (e) {
+      console.warn(MLT.LOG_PREFIX, "Could not enumerate SFX folder", e);
+      this._availableSfx = [];
+    }
+  }
+
+  _formatSfxLabel(filename) {
+    return filename
+      .replace(/\.ogg$/i, "")
+      .replace(/^sfx_mlt_/, "")
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, c => c.toUpperCase());
   }
 
   _onUpdateScene(scene) {
