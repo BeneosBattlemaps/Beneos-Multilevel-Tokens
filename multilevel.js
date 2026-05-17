@@ -1129,7 +1129,7 @@ class MultilevelTokens {
         requestBatch.deleteToken(scene, id);
         requestBatch.createToken(outScene, token);
         owners.forEach(user => {
-          requestBatch.extraAction(() => game.socket.emit("pullToScene", outScene.id, user.id));
+          requestBatch.extraAction(() => this._pullUserToScene(outScene, user, position, token.actorId));
         })
         requestBatch.extraAction(() => {
           this._notifyGmTeleport(token.name, outScene.name, outScene.id, position.x, position.y);
@@ -1646,6 +1646,67 @@ class MultilevelTokens {
     });
   }
 
+  // Pull a single player client to follow a token that was cross-scene teleported.
+  // pullUsers (V14) handles the scene switch but not focus/select — we always emit our own
+  // module socket for the focus + auto-select step, regardless of scene-switch mechanism.
+  _pullUserToScene(outScene, user, position, actorId) {
+    if (typeof outScene.pullUsers === "function") {
+      outScene.pullUsers([user.id]);
+    } else {
+      game.socket.emit("pullToScene", outScene.id, user.id);
+    }
+    game.socket.emit(`module.${MLT.SCOPE}`, {
+      operation: "pullToScene",
+      scene: outScene.id,
+      user: user.id,
+      x: position.x,
+      y: position.y,
+      actorId: actorId,
+    });
+  }
+
+  // Find the freshly-teleported token on the current canvas, control it, and pan/zoom to it.
+  // Retries briefly because createToken sync from the server may not have arrived yet.
+  _focusUserOnTeleportedToken(data) {
+    const fallbackPan = () => {
+      if (typeof data.x === "number" && typeof data.y === "number") {
+        canvas.animatePan({ x: data.x, y: data.y, scale: 1.5, duration: 500 });
+      }
+    };
+    if (!data.actorId || !canvas?.tokens) {
+      fallbackPan();
+      return;
+    }
+    const findToken = () => canvas.tokens.placeables.find(t =>
+      t.document?.actorId === data.actorId &&
+      Math.abs(t.document.x - data.x) < 5 &&
+      Math.abs(t.document.y - data.y) < 5
+    );
+    const tryFocus = (attempt = 0) => {
+      const token = findToken();
+      if (token) {
+        try {
+          token.control({ releaseOthers: true });
+        } catch (e) {
+          console.warn(MLT.LOG_PREFIX, "Could not control teleported token", e);
+        }
+        canvas.animatePan({
+          x: token.center.x,
+          y: token.center.y,
+          scale: 1.5,
+          duration: 500,
+        });
+        return;
+      }
+      if (attempt < 5) {
+        setTimeout(() => tryFocus(attempt + 1), 100);
+      } else {
+        fallbackPan();
+      }
+    };
+    tryFocus();
+  }
+
   _onReady() {
     // Replications might be out of sync if there was previously no GM and we just logged in.
     if (this._isOnlyGamemaster()) {
@@ -1653,8 +1714,8 @@ class MultilevelTokens {
     }
     if (game.user.isGM) {
       this._initializeLastTeleportAndMacroTracking();
-      game.socket.on(`module.${MLT.SCOPE}`, this._onSocket.bind(this));
     }
+    game.socket.on(`module.${MLT.SCOPE}`, this._onSocket.bind(this));
     // Activate pause mode hook if setting is already enabled
     if (game.settings.get(MLT.SCOPE, MLT.SETTING_PAUSED)) {
       this._onPauseSettingChanged();
@@ -2036,10 +2097,10 @@ class MultilevelTokens {
   }
 
   _onSocket(data) {
-    if (!this._isPrimaryGamemaster()) {
-      return;
-    }
     if (data.operation === "clickMapNote") {
+      if (!this._isPrimaryGamemaster()) {
+        return;
+      }
       const scene = game.scenes.get(data.scene);
       const user = game.users.get(data.user);
       if (!scene || !user) {
@@ -2049,6 +2110,23 @@ class MultilevelTokens {
       if (note) {
         this._doMapNoteTeleport(scene, note, user);
       }
+      return;
+    }
+    if (data.operation === "pullToScene") {
+      if (game.user.id !== data.user) return;
+      const targetScene = game.scenes.get(data.scene);
+      if (!targetScene) return;
+      const needsViewSwitch = targetScene.id !== game.scenes.viewed?.id;
+      // Small delay so the createToken on the destination scene has propagated to this client
+      // before we look for the token (socket broadcast and DB sync have no guaranteed order).
+      setTimeout(() => {
+        const afterReady = () => this._focusUserOnTeleportedToken(data);
+        if (needsViewSwitch) {
+          targetScene.view().then(afterReady);
+        } else {
+          afterReady();
+        }
+      }, 100);
     }
   }
 }

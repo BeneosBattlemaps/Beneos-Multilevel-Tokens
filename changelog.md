@@ -3,6 +3,11 @@
 All notable changes to this module will be documented in this file.
 
 ## Updates
+### 14.1.2 # 2026-05-17
+- **Fixed:** Connected players now follow their tokens to the target scene when using Multilevel Tokens teleporters.
+
+- **Improved:** After a successful teleportation, the connected players camera now correctly zooms to the creature that was just teleported, and the creature is also automatically selected so the player can immediately continue moving.
+
 ### 14.1.1 # 2026-05-06
 - **New:** We have added teleportation sound effects. All MLT fields now include a select field with a variety of sound effects that players and Game Masters will hear when using the teleporter, for maximum immersion.
 
