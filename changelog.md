@@ -3,6 +3,9 @@
 All notable changes to this module will be documented in this file.
 
 ## Updates
+### 14.1.3 # 2026-06-15
+- **Fixed:** The teleporter sound-effect list now loads through Foundry's current file API, so it keeps working on upcoming Foundry versions and no longer logs a warning.
+
 ### 14.1.2 # 2026-05-17
 - **Fixed:** Connected players now follow their tokens to the target scene when using Multilevel Tokens teleporters.
 

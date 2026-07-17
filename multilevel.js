@@ -1740,7 +1740,12 @@ class MultilevelTokens {
   async _loadAvailableSfx() {
     const dir = `modules/${MLT.SCOPE}/sfx`;
     try {
-      const result = await FilePicker.browse("data", dir);
+      // V13+ namespaced the global FilePicker under foundry.applications.apps;
+      // the bare global still works on V13/V14 but logs a deprecation and is
+      // removed in V15. Prefer the namespaced implementation, fall back to the
+      // global for older cores.
+      const FP = foundry?.applications?.apps?.FilePicker?.implementation ?? FilePicker;
+      const result = await FP.browse("data", dir);
       const files = (result?.files || []).filter(f => /\.ogg$/i.test(f));
       this._availableSfx = files
         .map(path => ({ path, label: this._formatSfxLabel(path.split("/").pop()) }))
