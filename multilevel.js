@@ -9,7 +9,7 @@ const MLT = {
   SETTING_CLONE_MODULE_FLAGS: "clonemoduleflags",
   SETTING_NOTIFY_GM_TELEPORT: "notifygmteleport",
   SETTING_PAUSED: "paused",
-  DEFAULT_TINT_COLOR: "#808080",
+  DEFAULT_TINT_COLOR: "#ffffff",
   FLAG_SOURCE_SCENE: "sscene",
   FLAG_SOURCE_TOKEN: "stoken",
   FLAG_SOURCE_REGION: "srect",
@@ -19,6 +19,17 @@ const MLT = {
   TOKEN_STAIRS: "@stairs",
   SUPPORTED_TYPES: [foundry.data.ShapeData.TYPES.RECTANGLE, foundry.data.ShapeData.TYPES.ELLIPSE,
   foundry.data.ShapeData.TYPES.POLYGON],
+};
+
+// V13/V14 namespaced-API compatibility: prefer the modern namespaced class and
+// fall back to the deprecated global only on older cores. Silences the deprecation
+// warnings these globals emit while keeping backward compatibility.
+const MLTCompat = {
+  Color: foundry.utils?.Color ?? globalThis.Color,
+  AudioHelper: foundry.audio?.AudioHelper ?? globalThis.AudioHelper,
+  NotesLayer: foundry.canvas?.layers?.NotesLayer ?? globalThis.NotesLayer,
+  CanvasAnimation: foundry.canvas?.animation?.CanvasAnimation ?? globalThis.CanvasAnimation,
+  HexagonalGrid: foundry.grid?.HexagonalGrid ?? globalThis.HexagonalGrid,
 };
 
 /* TODO section :
@@ -172,6 +183,7 @@ class MultilevelTokens {
     Hooks.on("createChatMessage", this._onCreateChatMessage.bind(this));
     Hooks.on("renderDrawingConfig", this._onRenderDrawingConfig.bind(this));
     this._lastTeleport = {};
+    this._lastLevelTeleport = {};
     this._lastMacro = {};
     this._chatMacroSpeaker = null;
     this._asyncQueue = null;
@@ -481,7 +493,7 @@ class MultilevelTokens {
     if (token.actor && !token.actorLink && !game.settings.get(MLT.SCOPE, MLT.SETTING_CLONE_ACTOR_LINK) && token.actor.effects) {
       data.actorData = { "effects": [] };
       for (let i = 0; i < token.actor.effects.contents.length; ++i) {
-        data.actorData.effects.push({ "icon": token.actor.effects.contents[i].icon });
+        data.actorData.effects.push({ "icon": token.actor.effects.contents[i].img ?? token.actor.effects.contents[i].icon });
       }
     }
     return data;
@@ -501,8 +513,8 @@ class MultilevelTokens {
     };
     const targetCentre = this._mapPosition(this._getTokenCentre(sourceScene, token), sourceRegion, targetRegion);
 
-    const tintRgb = token.tint ? Color.from(token.tint).rgb : [1., 1., 1.];
-    const multRgb = Color.from(
+    const tintRgb = token.texture?.tint ? MLTCompat.Color.from(token.texture.tint).rgb : [1., 1., 1.];
+    const multRgb = MLTCompat.Color.from(
       this._getRegionFlag(targetRegion, "tintColor") || MLT.DEFAULT_TINT_COLOR).rgb;
     for (let i = 0; i < multRgb.length; ++i) {
       tintRgb[i] *= multRgb[i];
@@ -517,7 +529,22 @@ class MultilevelTokens {
       data.actorId = "";
       data.actorLink = false;
     }
+    // Source token references an actor that no longer exists (common on worlds
+    // migrated across major versions). Cloning its dead actorId yields a replica
+    // Foundry flags as "references an Actor which no longer exists" and can break a
+    // bulk refresh. Fall back to a dummy (actorless) clone instead.
+    if (data.actorId && !game.actors.get(data.actorId)) {
+      data.actorId = "";
+      data.actorLink = false;
+    }
+    // In V13 token vision lives under sight.enabled; the old top-level `vision`
+    // field is a no-op, so a naive JSON clone would keep the source token's vision.
     data.vision = false;
+    if (data.sight) {
+      data.sight.enabled = false;
+    } else {
+      data.sight = { enabled: false };
+    }
     data.width *= scale.x;
     data.height *= scale.y;
     // Workaround for Foundry behaviour in which image is scaled down to fit if token width is reduced, but not if
@@ -538,11 +565,11 @@ class MultilevelTokens {
     const targetPosition = this._getTokenPositionFromCentre(targetScene, data, targetCentre);
     data.x = targetPosition.x;
     data.y = targetPosition.y;
-    if (Number(data?.elevation) && Number(sourceRegion?.elevation) && Number(targetRegion?.elevation)) { // Fix issue 21
+    if (Number.isFinite(Number(data?.elevation)) && Number.isFinite(Number(sourceRegion?.elevation)) && Number.isFinite(Number(targetRegion?.elevation))) { // Fix issue 21 / #39 (0 is a valid elevation)
       data.elevation = data.elevation - sourceRegion.elevation + targetRegion.elevation
     }
     data.rotation += targetRegion.rotation - sourceRegion.rotation;
-    data.texture.tint = Color.fromRGB(tintRgb).toString(16);
+    data.texture.tint = MLTCompat.Color.fromRGB(tintRgb).css;
     data.alpha = token.alpha * opacity;
     if (!data.flags || !cloneModuleFlags) {
       data.flags = {};
@@ -828,56 +855,65 @@ class MultilevelTokens {
     };
 
     let promise = Promise.resolve(null);
+    // Each batched operation is isolated: a single rejected create/update (e.g. a
+    // document Foundry refuses on a migration-damaged world) is logged and skipped
+    // instead of aborting the whole refresh chain or surfacing as an unhandled rejection.
+    const step = (op) => {
+      promise = promise.then(op).catch(err => {
+        console.warn(MLT.LOG_PREFIX, "Batch operation failed, continuing:", err);
+        return null;
+      });
+    };
     for (const [sceneId, data] of Object.entries(requestBatch._scenes)) {
       const scene = game.scenes.get(sceneId);
       if (!scene) {
         continue;
       }
       if (data.delete.length) {
-        promise = promise.then(() => scene.deleteEmbeddedDocuments("Token", data.delete, structuredClone(baseOptions)));
+        step(() => scene.deleteEmbeddedDocuments("Token", data.delete, structuredClone(baseOptions)));
       }
       if (data.updateAnimateDiff.length) {
-        promise = promise.then(() => scene.updateEmbeddedDocuments("Token", data.updateAnimateDiff,
+        step(() => scene.updateEmbeddedDocuments("Token", data.updateAnimateDiff,
           { diff: true, ...structuredClone(baseOptions) }));
       }
       if (data.updateAnimated.length) {
-        promise = promise.then(() => scene.updateEmbeddedDocuments("Token", data.updateAnimated,
+        step(() => scene.updateEmbeddedDocuments("Token", data.updateAnimated,
           { diff: false, animation: { duration: 1000 }, ...structuredClone(baseOptions) }));
       }
       if (data.updateInstant.length) {
-        promise = promise.then(() => scene.updateEmbeddedDocuments("Token", data.updateInstant,
+        step(() => scene.updateEmbeddedDocuments("Token", data.updateInstant,
           { diff: false, animation: { duration: 1. / (1024 * 1024) }, ...structuredClone(baseOptions) }));
       }
       if (data.updateTile.length) {
-        promise = promise.then(() => scene.updateEmbeddedDocuments("Tile", data.updateTile,
+        step(() => scene.updateEmbeddedDocuments("Tile", data.updateTile,
           { diff: false, ...structuredClone(baseOptions) }));
       }
       if (data.updateWall.length) {
-        promise = promise.then(() => scene.updateEmbeddedDocuments("Wall", data.updateWall,
+        step(() => scene.updateEmbeddedDocuments("Wall", data.updateWall,
           { diff: false, ...structuredClone(baseOptions) }));
       }
       if (data.updateDrawing.length) {
-        promise = promise.then(() => scene.updateEmbeddedDocuments("Drawing", data.updateDrawing,
+        step(() => scene.updateEmbeddedDocuments("Drawing", data.updateDrawing,
           { diff: false, ...structuredClone(baseOptions) }));
       }
       if (data.updateMapNote.length) {
-        promise = promise.then(() => scene.updateEmbeddedDocuments("Note", data.updateMapNote,
+        step(() => scene.updateEmbeddedDocuments("Note", data.updateMapNote,
           { diff: false, ...structuredClone(baseOptions) }));
       }
       if (data.updateLight.length) {
-        promise = promise.then(() => scene.updateEmbeddedDocuments("AmbientLight", data.updateLight,
+        step(() => scene.updateEmbeddedDocuments("AmbientLight", data.updateLight,
           { diff: false, ...structuredClone(baseOptions) }));
       }
       if (data.updateSound.length) {
-        promise = promise.then(() => scene.updateEmbeddedDocuments("AmbientSound", data.updateSound,
+        step(() => scene.updateEmbeddedDocuments("AmbientSound", data.updateSound,
           { diff: false, ...structuredClone(baseOptions) }));
       }
       if (data.create.length) {
-        promise = promise.then(() => scene.createEmbeddedDocuments("Token", data.create, structuredClone(baseOptions)));
+        step(() => scene.createEmbeddedDocuments("Token", data.create, structuredClone(baseOptions)));
       }
     }
     for (const f of requestBatch._extraActions) {
-      promise = promise.then(f);
+      step(f);
     }
 
     return promise;
@@ -900,13 +936,14 @@ class MultilevelTokens {
         this._asyncQueue = null;
       }
     };
+    const swallow = err => console.warn(MLT.LOG_PREFIX, "Batch run failed:", err);
     if (this._asyncCount === 0) {
       const result = batched();
       ++this._asyncCount;
-      this._asyncQueue = result.finally(done);
+      this._asyncQueue = result.catch(swallow).finally(done);
     } else {
       ++this._asyncCount;
-      this._asyncQueue = this._asyncQueue.finally(batched).finally(done);
+      this._asyncQueue = this._asyncQueue.finally(batched).catch(swallow).finally(done);
     }
   }
 
@@ -1023,12 +1060,12 @@ class MultilevelTokens {
         canvas.notes.deactivate();
       }
     }
-    if (overrideNotesDisplay && !game.settings.get("core", NotesLayer.TOGGLE_SETTING)) {
-      game.settings.set("core", NotesLayer.TOGGLE_SETTING, true);
+    if (overrideNotesDisplay && !game.settings.get("core", MLTCompat.NotesLayer.TOGGLE_SETTING)) {
+      game.settings.set("core", MLTCompat.NotesLayer.TOGGLE_SETTING, true);
       this._overrideNotesDisplay = true;
       redrawNotes();
     } else if (!overrideNotesDisplay && this._overrideNotesDisplay) {
-      game.settings.set("core", NotesLayer.TOGGLE_SETTING, false);
+      game.settings.set("core", MLTCompat.NotesLayer.TOGGLE_SETTING, false);
       this._overrideNotesDisplay = false;
       redrawNotes();
     }
@@ -1059,7 +1096,7 @@ class MultilevelTokens {
           position.x = Math.round(position.x);
           position.y = Math.round(position.y);
         } else {
-          const hexGrid = new HexagonalGrid(options);
+          const hexGrid = new MLTCompat.HexagonalGrid(options);
           if (hexGrid.getSnappedPosition) {
             position = hexGrid.getSnappedPosition(position.x, position.y);
           } else {
@@ -1069,11 +1106,14 @@ class MultilevelTokens {
       }
       const animate = this._hasRegionFlag(inRegion, "animate") || this._hasRegionFlag(outRegion, "animate");
       const duplToken = JSON.parse(JSON.stringify(token));
-      if (Number(outRegion?.elevation) && Number(inRegion?.elevation)) { // Fix issue 21
+      if (Number.isFinite(Number(outRegion?.elevation)) && Number.isFinite(Number(inRegion?.elevation))) { // Fix issue 21 / #39 (0 is a valid elevation)
         duplToken.elevation = duplToken.elevation - Number(inRegion.elevation) + Number(outRegion.elevation)
       } else {
         duplToken.elevation = duplToken?.elevation || 0
       }
+      // #34: never teleport a token to a negative elevation; a negative value renders
+      // it under the floor / with zero alpha (seen on CoS zones migrated from V12).
+      duplToken.elevation = Math.max(0, Number(duplToken.elevation) || 0);
       // Previous elevation setting : duplToken.elevation = outRegion.elevation ?? duplToken.elevation;
       destinations.push([duplToken, outScene, animate, position]);
     }
@@ -1097,7 +1137,7 @@ class MultilevelTokens {
         if (u.active && u.isGM) recipients.add(u.id);
       }
       const ids = Array.from(recipients);
-      AudioHelper.play({src: inSound, volume: 0.8}, ids.length ? {recipients: ids} : true);
+      MLTCompat.AudioHelper.play({src: inSound, volume: 0.8}, ids.length ? {recipients: ids} : true);
     }
 
     this._queueAsync(requestBatch => {
@@ -1192,6 +1232,7 @@ class MultilevelTokens {
 
     const levelRegions = this._getFlaggedRegionsContainingToken(scene, token, "level");
     if (!levelRegions.length) {
+      delete this._lastLevelTeleport[token._id];
       return false;
     }
 
@@ -1199,6 +1240,15 @@ class MultilevelTokens {
     const sourceStairTokens =
       allStairTokens.filter(t => this._isPointInToken(scene, this._getTokenCentre(scene, token), t));
     if (!sourceStairTokens.length) {
+      delete this._lastLevelTeleport[token._id];
+      return false;
+    }
+
+    // #45: if the token is still standing on the stair it was just teleported onto,
+    // don't teleport again. Only re-teleport once it moves to a different stair or
+    // steps off entirely (mirrors the in/out guard via _lastTeleport).
+    const lastStair = this._lastLevelTeleport[token._id];
+    if (lastStair && sourceStairTokens.some(t => t.id === lastStair)) {
       return false;
     }
 
@@ -1229,6 +1279,7 @@ class MultilevelTokens {
       return false;
     }
     const targetStairToken = targetStairTokens[Math.floor(targetStairTokens.length * Math.random())];
+    this._lastLevelTeleport[token._id] = targetStairToken.id;
     this._queueAsync(requestBatch => requestBatch.updateToken(scene, {
       _id: token._id,
       x: targetStairToken.x,
@@ -1238,31 +1289,44 @@ class MultilevelTokens {
   }
 
   _flagsToLabel(flags) {
+    // #42: use ASCII-only markers. The previous glyphs (U+1F5D9, U+1F795/6, ...) are
+    // partly outside the BMP and not carried by the drawing font, so they rendered as
+    // garbage boxes/mojibake in the drawing text label on many setups.
     let lines = [];
     if (flags.disabled) {
-      lines.push("🗙");
+      lines.push("(off)");
     }
     if (flags.in || flags.out) {
-      lines.push((flags.in ? "▶ " : "") + flags.teleportId + (flags.out ? " ▶" : ""));
+      lines.push((flags.in ? "> " : "") + flags.teleportId + (flags.out ? " >" : ""));
     }
     if (flags.source || flags.target) {
-      lines.push((flags.source && flags.target ? "🞖" : flags.source ? "🞕" : "◻") + " " + flags.cloneId);
+      lines.push((flags.source && flags.target ? "[S+T]" : flags.source ? "[S]" : "[T]") + " " + flags.cloneId);
     }
     if (flags.macroEnter || flags.macroLeave || flags.macroMove) {
-      lines.push("✧ " + flags.macroName);
+      lines.push("* " + flags.macroName);
     }
     if (flags.level) {
-      lines.push("☰ " + String(flags.levelNumber));
+      lines.push("Lvl " + String(flags.levelNumber));
     }
     return lines.length ? lines.join(" ") : null;
   }
 
   _injectDrawingConfigTab(app, html, data) {
+    // #35/#36: guard against double-injection on AppV2 re-render.
+    if ($(html).find('[data-tab="multilevel-tokens"]').length) {
+      return;
+    }
     let flags = {};
     if (data.document.flags?.[MLT.SCOPE]) {
       flags = data.document.flags[MLT.SCOPE];
     }
 
+    // The MLT tab is cloned from the core "text" tab. If that structure is absent
+    // (unexpected core version), skip injection instead of throwing on structuredClone.
+    if (!data.tabs?.text) {
+      console.warn(MLT.LOG_PREFIX, "DrawingConfig has no 'text' tab to clone; skipping MLT tab injection.");
+      return;
+    }
     let newTab = structuredClone(data.tabs['text'])
     newTab.id = "multilevel-tokens";
     newTab.label = game.i18n.localize("MLT.TabTitle");
@@ -1449,13 +1513,24 @@ class MultilevelTokens {
       ev.preventDefault();
       const path = sfxSelect.val();
       if (!path) return;
-      AudioHelper.play({ src: path, volume: 0.8 }, false);
+      MLTCompat.AudioHelper.play({ src: path, volume: 0.8 }, false);
     });
     input("source").prop("checked", flags.source);
     input("target").prop("checked", flags.target);
     input("cloneId").prop("value", flags.cloneId);
     input("tintColor").prop("value", flags.tintColor || MLT.DEFAULT_TINT_COLOR);
     input("tintColorPicker").prop("value", flags.tintColor || MLT.DEFAULT_TINT_COLOR);
+    // #23: keep the color picker and the saved tintColor text field in sync. The old
+    // data-edit binding is not reliable in the V13 ApplicationV2 DrawingConfig, so the
+    // picker previously wrote only to the unused tintColorPicker flag and no tint saved.
+    {
+      const tintText = input("tintColor");
+      const tintPicker = input("tintColorPicker");
+      tintPicker.on("input change", () => tintText.val(tintPicker.val()));
+      tintText.on("input change", () => {
+        if (/^#[0-9a-fA-F]{6}$/.test(String(tintText.val()))) tintPicker.val(tintText.val());
+      });
+    }
     input("opacity").prop("value", flags.opacity === 0. ? 0. : flags.opacity || 1.);
     input("scale").prop("value", flags.scale || 1);
     input("flipX").prop("checked", flags.flipX);
@@ -1619,9 +1694,9 @@ class MultilevelTokens {
       const tokenObj = canvas.tokens.get(tokenId);
       if (!tokenObj) return;
       tokenObj.alpha = 0;
-      CanvasAnimation.animate([
+      MLTCompat.CanvasAnimation.animate([
         { parent: tokenObj, attribute: "alpha", to: 1 }
-      ], { duration: 400, easing: CanvasAnimation.easeInOutCosine });
+      ], { duration: 400, easing: MLTCompat.CanvasAnimation.easeInOutCosine });
     }, 100);
   }
 
@@ -1839,8 +1914,11 @@ class MultilevelTokens {
           this._doTeleport(token.parent, token);
         }, 100); // Légère attente pour que le token soit bien placé
       }
-    } else if (!token.actorLink && game.settings.get(MLT.SCOPE, MLT.SETTING_CLONE_ACTOR_LINK)) {
+    } else if (this._isReplicatedToken(token) && !token.actorLink && game.settings.get(MLT.SCOPE, MLT.SETTING_CLONE_ACTOR_LINK)) {
       // Manually hack-link the actors (v13 legacy, safely guarded for v14+).
+      // Guard on _isReplicatedToken: this branch resolves a clone's source token, so
+      // it must never run for a plain unlinked token or a @stairs token (which have no
+      // MLT flags) - otherwise _getSourceTokenForReplicatedToken throws on undefined flags.
       const sourceToken = this._getSourceTokenForReplicatedToken(token.parent, token);
       if (sourceToken) {
         try {
@@ -1885,7 +1963,12 @@ class MultilevelTokens {
           }, 100);
         }
       }
-      this._doLevelTeleport(token.parent, token);
+      // #45: never re-run a level/stair teleport for MLT's own replicated update.
+      // The stair teleport moves the token via a REPLICATED_UPDATE, which re-enters
+      // this hook; running it again would loop every frame.
+      if (!(MLT.REPLICATED_UPDATE in options)) {
+        this._doLevelTeleport(token.parent, token);
+      }
       this._doMacros(token.parent, token);
       this._queueAsync(requestBatch => {
         this._updateAllReplicatedTokensForToken(requestBatch, token.parent, this._duplicateTokenData(token),
@@ -1976,6 +2059,7 @@ class MultilevelTokens {
       const t = this._duplicateTokenData(token);
       this._queueAsync(requestBatch => this._removeReplicationsForSourceToken(requestBatch, token.parent, t));
       delete this._lastTeleport[token._id];
+      delete this._lastLevelTeleport[token._id];
       delete this._lastMacro[token._id];
     }
   }
@@ -2096,8 +2180,14 @@ class MultilevelTokens {
 
   _onRenderDrawingConfig(app, html, data) {
     // Debug: console.log(MLT.LOG_PREFIX, "Drawing config render", data);
-    if (this._isAuthorisedRegion(data.document) && MLT.SUPPORTED_TYPES.includes(data.document.shape.type)) {
-      this._injectDrawingConfigTab(app, html, data);
+    // #35/#36: never let a failure here cascade into Foundry's own drawing UI
+    // (which previously showed up as errors when selecting/locking drawings).
+    try {
+      if (this._isAuthorisedRegion(data.document) && MLT.SUPPORTED_TYPES.includes(data.document.shape.type)) {
+        this._injectDrawingConfigTab(app, html, data);
+      }
+    } catch (err) {
+      console.warn(MLT.LOG_PREFIX, "Failed to inject drawing config tab:", err);
     }
   }
 

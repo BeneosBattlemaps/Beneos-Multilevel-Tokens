@@ -155,6 +155,15 @@ drawing.update({flags: {"multilevel-tokens": {disabled: !drawing.data.flags["mul
 
 # Version history
 
+* **14.1.4**:
+  * Hardened the bulk refresh so a single broken clone can no longer abort the whole refresh. Clones whose source actor no longer exists now become dummy tokens instead of dead references.
+  * Fixed cloning and teleporting at elevation 0 (a source, target, or token elevation of exactly 0 was previously ignored).
+  * Teleport destinations are now clamped to a non-negative elevation, so tokens no longer end up under the floor with zero opacity on worlds migrated across versions.
+  * Cloned tokens no longer grant vision, and the clone tint color now applies correctly, with a neutral default so clones are no longer darkened.
+  * Fixed a teleport loop between paired level/stair regions.
+  * Fixed an error thrown when creating an unlinked token (for example a staircase token) while a cloning region is present.
+  * Region drawing labels now use plain text instead of symbols that appeared as garbage on some setups.
+  * Hardened the drawing configuration tab against render errors and updated deprecated Foundry V13 API calls.
 * **1.7.0**:
   * Compatibility with Foundry version 12.
 * **1.6.0**:

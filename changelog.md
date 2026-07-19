@@ -3,6 +3,16 @@
 All notable changes to this module will be documented in this file.
 
 ## Updates
+### 14.1.4 # 2026-07-18
+- **Improved:** Bulk refresh is hardened so a single broken clone can no longer abort the whole refresh, and clones whose source actor no longer exists become dummy tokens instead of dead references.
+- **Fixed:** Cloning and teleporting at elevation 0 now works correctly (a source, target, or token elevation of exactly 0 was previously ignored).
+- **Fixed:** Teleport destinations are clamped to a non-negative elevation, so tokens no longer end up under the floor with zero opacity on worlds migrated across versions.
+- **Fixed:** Cloned tokens no longer grant vision, and the clone tint color now applies correctly, with a neutral default so clones are no longer darkened.
+- **Fixed:** A teleport loop between paired level and stair regions no longer occurs.
+- **Fixed:** Creating an unlinked token (for example a staircase token) while a cloning region is present no longer throws an error.
+- **Changed:** Region drawing labels now use plain text instead of symbols that appeared as garbage on some setups.
+- **Improved:** The drawing configuration tab is hardened against render errors, and deprecated Foundry V13 API calls have been updated.
+
 ### 14.1.3 # 2026-07-18
 - **Fixed:** The teleporter sound-effect list now loads through Foundry's current file API, so it keeps working on upcoming Foundry versions and no longer logs a warning.
 
