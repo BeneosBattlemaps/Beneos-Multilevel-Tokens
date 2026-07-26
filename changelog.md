@@ -3,6 +3,9 @@
 All notable changes to this module will be documented in this file.
 
 ## Updates
+### 14.1.5 # 2026-07-26
+- **Improved:** Improved indexing significantly enhances performance in very large worlds.
+
 ### 14.1.4 # 2026-07-18
 - **Improved:** Bulk refresh is hardened so a single broken clone can no longer abort the whole refresh, and clones whose source actor no longer exists become dummy tokens instead of dead references.
 - **Fixed:** Cloning and teleporting at elevation 0 now works correctly (a source, target, or token elevation of exactly 0 was previously ignored).
