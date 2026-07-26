@@ -602,21 +602,69 @@ class MultilevelTokens {
     return data;
   }
 
+  // Index of every flagged region in the world, grouped by its id flag.
+  //
+  // _getLinkedRegionsByFlag used to walk every drawing of every scene on each
+  // call, and refreshAll calls it once per source region. Measured in a world
+  // with 2124 scenes, 13680 drawings and 27 source regions: 552 ms per
+  // refreshAll, which runs on every scene create, update and delete, and
+  // updateScene fires twice for a single scene switch.
+  //
+  // The index is built once and then reused for the rest of the current
+  // synchronous pass. That is safe without any invalidation hooks because the
+  // clear below is queued as a microtask: it runs as soon as the JavaScript
+  // stack empties, which is before any awaited continuation resumes, so the
+  // index can never outlive one uninterrupted run and cannot go stale.
+  _linkedRegionIndex(idFlag, filterFlags) {
+    if (!this._linkedRegionCache) {
+      this._linkedRegionCache = new Map();
+      Promise.resolve().then(() => { this._linkedRegionCache = null; });
+    }
+    const key = `${idFlag}|${Array.isArray(filterFlags) ? filterFlags.join(",") : filterFlags}`;
+    const cached = this._linkedRegionCache.get(key);
+    if (cached) {
+      return cached;
+    }
+    // Built in game.scenes order, then drawing order, so results come out in the
+    // same sequence the previous implementation produced.
+    const index = new Map();
+    game.scenes.forEach(resultScene => resultScene.drawings.forEach(d => {
+      if (!this._hasRegionFlag(d, filterFlags)) {
+        return;
+      }
+      const id = this._getRegionFlag(d, idFlag);
+      if (!id) {
+        return;
+      }
+      const bucket = index.get(id);
+      if (bucket) {
+        bucket.push([resultScene, d]);
+      } else {
+        index.set(id, [[resultScene, d]]);
+      }
+    }));
+    this._linkedRegionCache.set(key, index);
+    return index;
+  }
+
   _getLinkedRegionsByFlag(scene, region, idFlag, filterFlags) {
     const id = this._getRegionFlag(region, idFlag);
     if (!id) {
       return [];
     }
-    const flagMatch = d => this._hasRegionFlag(d, filterFlags) && this._getRegionFlag(d, idFlag) === id;
     if (this._hasRegionFlag(region, "local")) {
+      const flagMatch = d => this._hasRegionFlag(d, filterFlags) && this._getRegionFlag(d, idFlag) === id;
       return scene.drawings
         .filter(d => d.id !== region._id && flagMatch(d))
         .map(result => [region, scene, result]);
     }
-    return game.scenes.map(resultScene => resultScene.drawings
-      .filter(d => (d.id !== region._id || scene !== resultScene) && flagMatch(d))
-      .map(result => [region, resultScene, result])
-    ).flat();
+    const matches = this._linkedRegionIndex(idFlag, filterFlags).get(id);
+    if (!matches) {
+      return [];
+    }
+    return matches
+      .filter(([resultScene, d]) => d.id !== region._id || scene !== resultScene)
+      .map(([resultScene, result]) => [region, resultScene, result]);
   }
 
   _getNumericallyAdjacentLevelRegions(scene, levelRegion) {
@@ -1970,10 +2018,17 @@ class MultilevelTokens {
         this._doLevelTeleport(token.parent, token);
       }
       this._doMacros(token.parent, token);
-      this._queueAsync(requestBatch => {
-        this._updateAllReplicatedTokensForToken(requestBatch, token.parent, this._duplicateTokenData(token),
-          Object.keys(update));
-      });
+      // Re-entrancy guard: a REPLICATED_UPDATE is already the result of a replication
+      // pass, so it must never start another one. Without this, MLT's own replica
+      // updates re-enter this hook and re-queue replication endlessly, producing a
+      // steady ~1 Hz update loop (each cycle also forces a full sidebar folder-tree
+      // rebuild), which freezes large worlds for as long as they stay open.
+      if (!(MLT.REPLICATED_UPDATE in options)) {
+        this._queueAsync(requestBatch => {
+          this._updateAllReplicatedTokensForToken(requestBatch, token.parent, this._duplicateTokenData(token),
+            Object.keys(update));
+        });
+      }
       if (game.settings.get(MLT.SCOPE, MLT.SETTING_CLONE_ACTOR_LINK)) {
         game.scenes.viewed.tokens.forEach(t => {
           if (this._isReplicatedToken(t) && t.rendered &&
@@ -2000,8 +2055,13 @@ class MultilevelTokens {
     }
     if (this._isProperToken(token)) {
       const t = this._duplicateTokenData(token);
-      this._queueAsync(requestBatch =>
-        this._updateAllReplicatedTokensForToken(requestBatch, token.parent, t, Object.keys(update)));
+      // Same re-entrancy guard as above: skip re-queuing replication for MLT's own
+      // updates (e.g. a stair teleport moving a source token via REPLICATED_UPDATE),
+      // otherwise the update loops back into this hook and never settles.
+      if (!(MLT.REPLICATED_UPDATE in options)) {
+        this._queueAsync(requestBatch =>
+          this._updateAllReplicatedTokensForToken(requestBatch, token.parent, t, Object.keys(update)));
+      }
       if ('x' in update || 'y' in update) {
         // Deprecated, moved below : this._doMacros(token.parent, token);
       }
