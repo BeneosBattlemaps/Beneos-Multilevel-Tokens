@@ -6,6 +6,7 @@ All notable changes to this module will be documented in this file.
 ### 14.1.6 # 2026-10-30
 - **Fixed:** The periodic clone refresh no longer resends the full actor data of unlinked tokens to every clone. It now sends only what actually changed, which stops the recurring "Batch operation failed" (Unexpected Error class) warning on Foundry v14 for clones whose original did not change.
 - **Fixed:** Clones without an actor (with "Link actors of cloned tokens" disabled) follow their original again. Actor data sent to them was rejected and took the movement update down with it.
+- **Fixed:** Players without permission to browse files no longer get a "Could not enumerate SFX folder" warning on login (#47). The sound list is only loaded for users who can browse files, which are the ones configuring regions.
 
 ### 14.1.5 # 2026-07-26
 - **Improved:** Improved indexing significantly enhances performance in very large worlds.

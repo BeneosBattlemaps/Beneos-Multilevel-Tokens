@@ -1911,7 +1911,11 @@ class MultilevelTokens {
       }
       canvas.animatePan({ x, y, scale: 1, duration: 500 });
     });
-    this._loadAvailableSfx();
+    // Only the drawing config tab uses the list, and browsing needs FILES_BROWSE;
+    // without it every player logged a permission warning on login (#47).
+    if (game.user.can("FILES_BROWSE")) {
+      this._loadAvailableSfx();
+    }
   }
 
   async _loadAvailableSfx() {
