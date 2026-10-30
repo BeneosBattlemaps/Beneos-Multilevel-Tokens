@@ -573,6 +573,10 @@ class MultilevelTokens {
     if (Number.isFinite(Number(data?.elevation)) && Number.isFinite(Number(sourceRegion?.elevation)) && Number.isFinite(Number(targetRegion?.elevation))) { // Fix issue 21 / #39 (0 is a valid elevation)
       data.elevation = data.elevation - sourceRegion.elevation + targetRegion.elevation
     }
+    const level = this._getTargetLevel(data.level, data.elevation, sourceScene, targetScene, targetRegion);
+    if (level !== undefined) {
+      data.level = level;
+    }
     data.rotation += targetRegion.rotation - sourceRegion.rotation;
     data.texture.tint = MLTCompat.Color.fromRGB(tintRgb).css;
     data.alpha = token.alpha * opacity;
@@ -598,6 +602,35 @@ class MultilevelTokens {
       }
     }
     return data;
+  }
+
+  // Native scene levels (Foundry v14, #43): the level a token copied into targetRegion
+  // belongs on. A JSON copy keeps the source token's level, so clones and teleported
+  // tokens stayed on the source level even when the target region sits on another one.
+  // Returns undefined where there are no native levels (v13), meaning "leave as is".
+  _getTargetLevel(sourceLevel, elevation, sourceScene, targetScene, targetRegion) {
+    if (!targetScene.levels) {
+      return undefined;
+    }
+    const regionLevels = new Set(targetRegion.levels ?? []);
+    if (regionLevels.size) {
+      if (sourceScene === targetScene && regionLevels.has(sourceLevel)) {
+        return sourceLevel;
+      }
+      // Of the region's levels, the one whose elevation band holds the token, else
+      // the lowest. Collection order is creation order and says nothing about height.
+      const bottom = l => l.elevation?.bottom ?? -Infinity;
+      const top = l => l.elevation?.top ?? Infinity;
+      const candidates = targetScene.levels.filter(l => regionLevels.has(l.id));
+      const fitting = candidates.find(l => elevation >= bottom(l) && elevation <= top(l));
+      const lowest = candidates.reduce((a, b) => (a && bottom(a) <= bottom(b)) ? a : b, null);
+      if (fitting ?? lowest) {
+        return (fitting ?? lowest).id;
+      }
+    }
+    // A region on every level keeps the token's level, unless that level only
+    // exists in another scene.
+    return targetScene.levels.has(sourceLevel) ? sourceLevel : targetScene.initialLevel?.id;
   }
 
   _getReplicatedTokenUpdateData(sourceScene, sourceToken, sourceRegion, targetScene, targetToken, targetRegion) {
@@ -1217,6 +1250,10 @@ class MultilevelTokens {
       // it under the floor / with zero alpha (seen on CoS zones migrated from V12).
       duplToken.elevation = Math.max(0, Number(duplToken.elevation) || 0);
       // Previous elevation setting : duplToken.elevation = outRegion.elevation ?? duplToken.elevation;
+      const level = this._getTargetLevel(duplToken.level, duplToken.elevation, scene, outScene, outRegion);
+      if (level !== undefined) {
+        duplToken.level = level;
+      }
       destinations.push([duplToken, outScene, animate, position]);
     }
 
@@ -1245,11 +1282,15 @@ class MultilevelTokens {
     this._queueAsync(requestBatch => {
       for (const [token, outScene, animate, position] of destinations) {
         if (outScene === scene) {
-          requestBatch.updateToken(scene, {
+          const update = {
             _id: token._id,
             x: position.x,
             y: position.y,
-          }, animate, /* diff */ false);
+          };
+          if (token.level !== undefined) {
+            update.level = token.level;
+          }
+          requestBatch.updateToken(scene, update, animate, /* diff */ false);
           requestBatch.extraAction(() => {
             this._notifyGmTeleport(token.name, outScene.name, outScene.id, position.x, position.y);
             this._playTeleportArrivalEffect(outScene, token._id);
