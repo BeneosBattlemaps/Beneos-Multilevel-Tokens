@@ -537,6 +537,11 @@ class MultilevelTokens {
       data.actorId = "";
       data.actorLink = false;
     }
+    // An actorless clone has no collection to merge an actor delta into; sending the
+    // source's delta makes Foundry throw and drops the whole update, movement included.
+    if (!data.actorId) {
+      delete data.delta;
+    }
     // In V13 token vision lives under sight.enabled; the old top-level `vision`
     // field is a no-op, so a naive JSON clone would keep the source token's vision.
     data.vision = false;
@@ -599,7 +604,56 @@ class MultilevelTokens {
     const data = this._getReplicatedTokenCreateData(sourceScene, sourceToken, sourceRegion, targetScene, targetRegion);
     data._id = targetToken._id;
     delete data.flags;
+    // A clone whose actor changes in this update (for example a dummy clone gaining an
+    // actor after the link setting was switched on) cannot take a delta in the same
+    // update; the next pass sends it once the actor is in place.
+    const delta = (targetToken.actorId ?? "") === (data.actorId ?? "")
+      ? this._getReplicatedDeltaUpdate(data.delta, targetToken)
+      : null;
+    if (delta) {
+      data.delta = delta;
+    } else {
+      delete data.delta;
+    }
     return data;
+  }
+
+  // Reduces the source token's actor delta to the parts the clone does not have yet.
+  //
+  // refreshAll runs on every scene update anywhere in the world and pushes every
+  // clone again. Sending the full delta each time makes the server merge every
+  // embedded item and effect into the clone's own copy. On Foundry v14 with dnd5e
+  // 6 that merge can throw ("Unexpected Error class" in
+  // EmbeddedCollectionDeltaField._updateElement), so an unchanged unlinked clone
+  // failed every few minutes. An unchanged delta is now not sent at all.
+  _getReplicatedDeltaUpdate(sourceDelta, targetToken) {
+    if (!sourceDelta) {
+      return null;
+    }
+    const targetDelta = JSON.parse(JSON.stringify(targetToken.delta ?? {})) ?? {};
+    // _stats carries creation and modification times, which always differ between
+    // the source and the clone even when the content is identical. It is ignored at
+    // every depth, because items carry their own embedded effects.
+    const withoutStats = (k, v) => k === "_stats" ? undefined : v;
+    const same = (a, b) => JSON.stringify(a, withoutStats) === JSON.stringify(b, withoutStats);
+    const update = {};
+    for (const [key, value] of Object.entries(sourceDelta)) {
+      if (key === "_id" || key === "_stats") {
+        continue;
+      }
+      const current = targetDelta[key];
+      if (Array.isArray(value) && value.every(e => e?._id)) {
+        // Embedded collections (items, effects): only new or changed elements.
+        const byId = new Map((Array.isArray(current) ? current : []).map(e => [e._id, e]));
+        const changed = value.filter(e => !same(e, byId.get(e._id)));
+        if (changed.length) {
+          update[key] = changed;
+        }
+      } else if (!same(value, current)) {
+        update[key] = value;
+      }
+    }
+    return Object.keys(update).length ? update : null;
   }
 
   // Index of every flagged region in the world, grouped by its id flag.
