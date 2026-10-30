@@ -4,10 +4,10 @@ All notable changes to this module will be documented in this file.
 
 ## Updates
 ### 14.1.6 # 2026-10-30
-- **Fixed:** The periodic clone refresh no longer resends the full actor data of unlinked tokens to every clone. It now sends only what actually changed, which stops the recurring "Batch operation failed" (Unexpected Error class) warning on Foundry v14 for clones whose original did not change.
-- **Fixed:** Clones without an actor (with "Link actors of cloned tokens" disabled) follow their original again. Actor data sent to them was rejected and took the movement update down with it.
-- **Added:** Cloning and teleporting now respect Foundry v14 scene levels (#43). A clone or teleported token is placed on the level of the target region instead of staying on the level of the original. A target region assigned to all levels keeps the token's current level.
-- **Fixed:** Players without permission to browse files no longer get a "Could not enumerate SFX folder" warning on login (#47). The sound list is only loaded for users who can browse files, which are the ones configuring regions.
+- **Fixed:** Recurring "Batch operation failed" warning for clones of unlinked tokens on Foundry v14.
+- **Fixed:** Clones without an actor no longer stop following their original.
+- **Added:** Clones and teleported tokens are placed on the target region's level (Foundry v14 scene levels) (#43).
+- **Fixed:** No more "Could not enumerate SFX folder" warning for players (#47).
 
 ### 14.1.5 # 2026-07-26
 - **Improved:** Improved indexing significantly enhances performance in very large worlds.
