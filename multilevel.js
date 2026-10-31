@@ -15,6 +15,10 @@ const MLT = {
   FLAG_SOURCE_REGION: "srect",
   FLAG_TARGET_REGION: "trect",
   REPLICATED_UPDATE: "mlt_bypass",
+  // Actor delta flags that describe one token rather than the actor. dnd5e 6 keeps in
+  // dnd5e.lastMovedToken the token that moved last, so a clone's value always names the
+  // clone; copying the source's value made dnd5e write it straight back on every refresh.
+  TOKEN_LOCAL_DELTA_FLAGS: ["dnd5e.lastMovedToken"],
   LOG_PREFIX: "Multilevel Tokens | ",
   TOKEN_STAIRS: "@stairs",
   SUPPORTED_TYPES: [foundry.data.ShapeData.TYPES.RECTANGLE, foundry.data.ShapeData.TYPES.ELLIPSE,
@@ -663,14 +667,25 @@ class MultilevelTokens {
     if (!sourceDelta) {
       return null;
     }
+    const source = foundry.utils.deepClone(sourceDelta);
     const targetDelta = JSON.parse(JSON.stringify(targetToken.delta ?? {})) ?? {};
+    for (const path of MLT.TOKEN_LOCAL_DELTA_FLAGS) {
+      foundry.utils.deleteProperty(source, `flags.${path}`);
+      foundry.utils.deleteProperty(targetDelta, `flags.${path}`);
+    }
     // _stats carries creation and modification times, which always differ between
     // the source and the clone even when the content is identical. It is ignored at
     // every depth, because items carry their own embedded effects.
     const withoutStats = (k, v) => k === "_stats" ? undefined : v;
-    const same = (a, b) => JSON.stringify(a, withoutStats) === JSON.stringify(b, withoutStats);
+    // An empty object and a missing one mean the same: no override. Without this,
+    // flags: {} on the source against no flags on the clone was sent on every refresh.
+    // null stays a value, because a delta can override a field with null on purpose.
+    const isEmpty = v => v === undefined || (v !== null && typeof v === "object" &&
+      !Array.isArray(v) && Object.values(v).every(isEmpty));
+    const same = (a, b) => (isEmpty(a) && isEmpty(b)) ||
+      JSON.stringify(a, withoutStats) === JSON.stringify(b, withoutStats);
     const update = {};
-    for (const [key, value] of Object.entries(sourceDelta)) {
+    for (const [key, value] of Object.entries(source)) {
       if (key === "_id" || key === "_stats") {
         continue;
       }
