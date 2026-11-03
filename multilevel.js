@@ -1068,8 +1068,10 @@ class MultilevelTokens {
     // Each batched operation is isolated: a single rejected create/update (e.g. a
     // document Foundry refuses on a migration-damaged world) is logged and skipped
     // instead of aborting the whole refresh chain or surfacing as an unhandled rejection.
-    const step = (op) => {
-      promise = promise.then(op).catch(err => {
+    // A scene can be deleted while earlier steps run; its remaining operations are then void.
+    const step = (op, sceneId) => {
+      const guarded = sceneId ? () => game.scenes.has(sceneId) ? op() : null : op;
+      promise = promise.then(guarded).catch(err => {
         console.warn(MLT.LOG_PREFIX, "Batch operation failed, continuing:", err);
         return null;
       });
@@ -1080,46 +1082,46 @@ class MultilevelTokens {
         continue;
       }
       if (data.delete.length) {
-        step(() => scene.deleteEmbeddedDocuments("Token", data.delete, structuredClone(baseOptions)));
+        step(() => scene.deleteEmbeddedDocuments("Token", data.delete, structuredClone(baseOptions)), sceneId);
       }
       if (data.updateAnimateDiff.length) {
         step(() => scene.updateEmbeddedDocuments("Token", data.updateAnimateDiff,
-          { diff: true, ...structuredClone(baseOptions) }));
+          { diff: true, ...structuredClone(baseOptions) }), sceneId);
       }
       if (data.updateAnimated.length) {
         step(() => scene.updateEmbeddedDocuments("Token", data.updateAnimated,
-          { diff: false, animation: { duration: 1000 }, ...structuredClone(baseOptions) }));
+          { diff: false, animation: { duration: 1000 }, ...structuredClone(baseOptions) }), sceneId);
       }
       if (data.updateInstant.length) {
         step(() => scene.updateEmbeddedDocuments("Token", data.updateInstant,
-          { diff: false, animation: { duration: 1. / (1024 * 1024) }, ...structuredClone(baseOptions) }));
+          { diff: false, animation: { duration: 1. / (1024 * 1024) }, ...structuredClone(baseOptions) }), sceneId);
       }
       if (data.updateTile.length) {
         step(() => scene.updateEmbeddedDocuments("Tile", data.updateTile,
-          { diff: false, ...structuredClone(baseOptions) }));
+          { diff: false, ...structuredClone(baseOptions) }), sceneId);
       }
       if (data.updateWall.length) {
         step(() => scene.updateEmbeddedDocuments("Wall", data.updateWall,
-          { diff: false, ...structuredClone(baseOptions) }));
+          { diff: false, ...structuredClone(baseOptions) }), sceneId);
       }
       if (data.updateDrawing.length) {
         step(() => scene.updateEmbeddedDocuments("Drawing", data.updateDrawing,
-          { diff: false, ...structuredClone(baseOptions) }));
+          { diff: false, ...structuredClone(baseOptions) }), sceneId);
       }
       if (data.updateMapNote.length) {
         step(() => scene.updateEmbeddedDocuments("Note", data.updateMapNote,
-          { diff: false, ...structuredClone(baseOptions) }));
+          { diff: false, ...structuredClone(baseOptions) }), sceneId);
       }
       if (data.updateLight.length) {
         step(() => scene.updateEmbeddedDocuments("AmbientLight", data.updateLight,
-          { diff: false, ...structuredClone(baseOptions) }));
+          { diff: false, ...structuredClone(baseOptions) }), sceneId);
       }
       if (data.updateSound.length) {
         step(() => scene.updateEmbeddedDocuments("AmbientSound", data.updateSound,
-          { diff: false, ...structuredClone(baseOptions) }));
+          { diff: false, ...structuredClone(baseOptions) }), sceneId);
       }
       if (data.create.length) {
-        step(() => scene.createEmbeddedDocuments("Token", data.create, structuredClone(baseOptions)));
+        step(() => scene.createEmbeddedDocuments("Token", data.create, structuredClone(baseOptions)), sceneId);
       }
     }
     for (const f of requestBatch._extraActions) {

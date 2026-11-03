@@ -7,6 +7,7 @@ All notable changes to this module will be documented in this file.
 - **Fixed:** Recurring "Batch operation failed" warning for clones of unlinked tokens on Foundry v14, which appeared after upgrading to D&D 5e 6. Clones that stopped following their original after such a failed update follow again once the world is restarted.
 - **Fixed:** Clones without an actor no longer stop following their original.
 - **Fixed:** A token is no longer cloned twice into the same target region, which could happen when it was placed shortly after its regions were drawn. Duplicates already in a world are removed automatically.
+- **Fixed:** Deleting a scene that contains clones no longer logs "Batch operation failed" errors.
 - **Improved:** Clones are no longer updated on every refresh when nothing has changed (D&D 5e 6).
 - **Added:** New region option "Player characters only". When set, only tokens owned by a player are teleported or cloned and trigger the region's macros; NPCs moving through the region are ignored.
 - **Added:** Clones and teleported tokens are placed on the target region's level (Foundry v14 scene levels) (#43).
