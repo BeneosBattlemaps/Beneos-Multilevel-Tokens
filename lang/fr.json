@@ -27,6 +27,7 @@
   "MLT.FieldSnapToGridNotes": "Les jetons seront alignés sur la grille lors de la téléportation vers cette région <b>Sortie</b>.",
   "MLT.FieldSceneLocal": "Local à la scène",
   "MLT.FieldSceneLocalNotes": "Restreindre les régions de téléportations et de clonage pour ne pouvoir correspondre qu'aux régions de la même scène.",
+  "MLT.FieldPlayersOnly": "Personnages joueurs uniquement",
   "MLT.SectionTokenCloning": "Clonage de jeton",
   "MLT.SectionTokenCloningNotes": "Les jetons seront clonés depuis les régions <b>Source</b> jusqu'à toute région <b>Cible</b> de même identifiant.",
   "MLT.FieldSource": "Source",
@@ -57,6 +58,7 @@
 
   "MLT.TipDisable": "Désactive temporairement toutes les automatisations MLT (téléport, clonage, macros) pour cette région de dessin.",
   "MLT.TipLocal": "Si activé, cette région ne correspondra qu'aux autres régions de la même scène. Utile pour empêcher les téléportations entre scènes.",
+  "MLT.TipPlayersOnly": "Seuls les tokens appartenant à un joueur sont affectés par cette région. Les PNJ ne sont ni téléportés ni clonés et ne déclenchent pas de macros. À activer sur la région déclencheuse : entrée de téléportation, source de clonage, région de niveau ou de macro.",
   "MLT.TipIn": "Marque ce dessin comme point d'entrée de téléportation. Les jetons entrant dans cette région seront téléportés vers une région Sortie correspondante.",
   "MLT.TipOut": "Marque ce dessin comme destination de téléportation. Les jetons d'une région Entrée correspondante apparaîtront ici.",
   "MLT.TipTeleportId": "Un identifiant texte unique pour lier les régions Entrée et Sortie. Les régions de même identifiant sont connectées.",

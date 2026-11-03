@@ -27,6 +27,7 @@
   "MLT.FieldSnapToGridNotes": "傳送到此 <b>Out</b> 區域時,代幣將對齊格線。",
   "MLT.FieldSceneLocal": "場景本地",
   "MLT.FieldSceneLocalNotes": "將傳送和複製區域限制為只匹配同一場景中的其他區域。",
+  "MLT.FieldPlayersOnly": "僅限玩家角色",
   "MLT.SectionTokenCloning": "代幣複製",
   "MLT.SectionTokenCloningNotes": "代幣將從 <b>Source</b> 區域複製到具有相符識別碼的任何 <b>Target</b> 區域。",
   "MLT.FieldSource": "來源",
@@ -57,6 +58,7 @@
 
   "MLT.TipDisable": "暫時停用此繪圖區域的所有 MLT 自動化(傳送、複製、巨集)。",
   "MLT.TipLocal": "啟用時,此區域只會與同一場景中的其他區域匹配。有助於防止跨場景傳送。",
+  "MLT.TipPlayersOnly": "只有玩家擁有的標記會受此區域影響。NPC 不會被傳送或複製，也不會觸發巨集。請在觸發的區域設定：傳送入口、複製來源、層級區域或巨集區域。",
   "MLT.TipIn": "將此繪圖標記為傳送入口。進入此區域的代幣將被傳送到相符的 Out 區域。",
   "MLT.TipOut": "將此繪圖標記為傳送目的地。來自相符 In 區域的代幣將出現在這裡。",
   "MLT.TipTeleportId": "用於連結 In 和 Out 區域的唯一文字識別碼。具有相同 ID 的區域已連接。",

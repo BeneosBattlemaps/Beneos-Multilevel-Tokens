@@ -27,6 +27,7 @@
   "MLT.FieldSnapToGridNotes": "Figuren werden am Raster ausgerichtet, wenn sie zu dieser <b>Aus</b>-Region teleportiert werden.",
   "MLT.FieldSceneLocal": "Szenen-lokal",
   "MLT.FieldSceneLocalNotes": "Beschränke die Teleportations- und Klonregionen darauf nur innerhalb der selben Szene übereinzustimmen.",
+  "MLT.FieldPlayersOnly": "Nur Spielercharaktere",
   "MLT.SectionTokenCloning": "Figuren Klonen",
   "MLT.SectionTokenCloningNotes": "Figuren werden von <b>Quell</b>-Regionen zu einer <b>Ziel</b>-Region mit passender Kennung geklont.",
   "MLT.FieldSource": "Quell",
@@ -57,6 +58,7 @@
 
   "MLT.TipDisable": "Deaktiviert vorübergehend alle MLT-Automatisierungen (Teleport, Klonen, Makros) für diese Zeichnungsregion.",
   "MLT.TipLocal": "Wenn aktiviert, werden nur Regionen auf derselben Szene verknüpft. Verhindert szenenübergreifende Teleportationen.",
+  "MLT.TipPlayersOnly": "Nur Figuren, die einem Spieler gehören, sind von dieser Region betroffen. NSCs werden nicht teleportiert oder geklont und lösen keine Makros aus. Setze es an der auslösenden Region: Teleport-Eingang, Klon-Quelle, Ebenen- oder Makro-Region.",
   "MLT.TipIn": "Markiert diese Zeichnung als Teleport-Eingang. Figuren, die diese Region betreten, werden zu einer passenden Aus-Region teleportiert.",
   "MLT.TipOut": "Markiert diese Zeichnung als Teleport-Ziel. Figuren aus einer passenden Ein-Region erscheinen hier.",
   "MLT.TipTeleportId": "Eine eindeutige Textkennung, um Ein- und Aus-Regionen zu verknüpfen. Regionen mit gleicher Kennung sind verbunden.",

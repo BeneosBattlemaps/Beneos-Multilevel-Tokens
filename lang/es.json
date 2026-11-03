@@ -30,6 +30,7 @@
   "MLT.FieldSnapToGridNotes": "Los iconos se ajustarán a la rejilla cuando se teleporten a esta región de <b>Salida</b>",
   "MLT.FieldSceneLocal": "Teleportación local",
   "MLT.FieldSceneLocalNotes": "Retringe las regiones de teleportación y clonación a la misma escena",
+  "MLT.FieldPlayersOnly": "Solo personajes jugadores",
   "MLT.SectionTokenCloning": "Clonación de iconos",
   "MLT.SectionTokenCloningNotes": "Los iconos se clonarán de regiones <b>Origen</b> a regiones <b>Destino</b> con el mismo identificador",
   "MLT.FieldSource": "Origen",
@@ -60,6 +61,7 @@
 
   "MLT.TipDisable": "Desactiva temporalmente todas las automatizaciones MLT (teletransporte, clonación, macros) de esta región.",
   "MLT.TipLocal": "Si está activo, esta región solo coincidirá con otras regiones de la misma escena. Útil para evitar teletransportes entre escenas.",
+  "MLT.TipPlayersOnly": "Solo los tokens que pertenecen a un jugador se ven afectados por esta región. Los PNJ no se teletransportan ni se clonan y no activan macros. Actívalo en la región que dispara: entrada de teletransporte, origen de clonación, región de nivel o de macro.",
   "MLT.TipIn": "Marca este dibujo como punto de entrada de teletransporte. Los iconos que entren en esta región serán teletransportados a una región Salida coincidente.",
   "MLT.TipOut": "Marca este dibujo como destino de teletransporte. Los iconos de una región Entrada coincidente aparecerán aquí.",
   "MLT.TipTeleportId": "Un identificador de texto único para vincular regiones Entrada y Salida. Las regiones con el mismo ID están conectadas.",

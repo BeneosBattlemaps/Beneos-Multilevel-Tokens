@@ -27,6 +27,7 @@
   "MLT.FieldSnapToGridNotes": "Tokeny budou přichyceny k mřížce při teleportaci do této oblasti <b>Out</b>.",
   "MLT.FieldSceneLocal": "Lokální pro scénu",
   "MLT.FieldSceneLocalNotes": "Omezit oblasti teleportu a klonování, aby odpovídaly pouze dalším oblastem na stejné scéně.",
+  "MLT.FieldPlayersOnly": "Pouze hráčské postavy",
   "MLT.SectionTokenCloning": "Klonování tokenů",
   "MLT.SectionTokenCloningNotes": "Tokeny budou klonovány z oblastí <b>Source</b> do všech oblastí <b>Target</b> se shodnými identifikátory.",
   "MLT.FieldSource": "Zdroj",
@@ -57,6 +58,7 @@
 
   "MLT.TipDisable": "Dočasně deaktivuje všechny automatizace MLT (teleport, klonování, makra) pro tuto kresbovou oblast.",
   "MLT.TipLocal": "Pokud je aktivní, tato oblast bude odpovídat pouze oblastem na stejné scéně. Užitečné pro zabránění teleportů mezi scénami.",
+  "MLT.TipPlayersOnly": "Tato oblast ovlivňuje pouze tokeny, které vlastní hráč. NPC nejsou teleportovány ani klonovány a nespouštějí makra. Nastavte to na spouštěcí oblasti: vstupu teleportu, zdroji klonování, oblasti podlaží nebo makra.",
   "MLT.TipIn": "Označí tuto kresbu jako vstupní bod teleportu. Tokeny vstupující do této oblasti budou teleportovány do odpovídající oblasti Out.",
   "MLT.TipOut": "Označí tuto kresbu jako cíl teleportu. Tokeny z odpovídající oblasti In se zde objeví.",
   "MLT.TipTeleportId": "Jedinečný textový identifikátor pro propojení oblastí In a Out. Oblasti se stejným ID jsou propojené.",

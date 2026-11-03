@@ -27,6 +27,7 @@
   "MLT.FieldSnapToGridNotes": "Els tokens s'ajustaran a la graella quan es teletransportin a aquesta regió <b>Out</b>.",
   "MLT.FieldSceneLocal": "Local a l'escena",
   "MLT.FieldSceneLocalNotes": "Restringeix les regions de teletransport i clonació perquè només coincideixin amb altres regions de la mateixa escena.",
+  "MLT.FieldPlayersOnly": "Només personatges jugadors",
   "MLT.SectionTokenCloning": "Clonació de tokens",
   "MLT.SectionTokenCloningNotes": "Els tokens es clonaran des de regions <b>Source</b> a qualsevol regió <b>Target</b> amb identificador coincident.",
   "MLT.FieldSource": "Origen",
@@ -57,6 +58,7 @@
 
   "MLT.TipDisable": "Desactiva temporalment totes les automatitzacions MLT (teletransport, clonació, macros) per a aquesta regió de dibuix.",
   "MLT.TipLocal": "Quan està activat, aquesta regió només coincidirà amb altres regions de la mateixa escena. Útil per evitar teletransports entre escenes.",
+  "MLT.TipPlayersOnly": "Només els tokens que pertanyen a un jugador es veuen afectats per aquesta regió. Els PNJ no es teletransporten ni es clonen i no activen macros. Activa-ho a la regió que dispara: entrada de teletransport, origen de clonació, regió de nivell o de macro.",
   "MLT.TipIn": "Marca aquest dibuix com a punt d'entrada de teletransport. Els tokens que entrin a aquesta regió seran teletransportats a una regió Out coincident.",
   "MLT.TipOut": "Marca aquest dibuix com a destinació de teletransport. Els tokens d'una regió In coincident apareixeran aquí.",
   "MLT.TipTeleportId": "Un identificador textual únic per vincular regions In i Out. Les regions amb el mateix ID estan connectades.",

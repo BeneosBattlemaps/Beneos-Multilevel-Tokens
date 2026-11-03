@@ -27,6 +27,7 @@
   "MLT.FieldSnapToGridNotes": "Tokens serão alinhados à grelha ao teleportar para esta região <b>Out</b>.",
   "MLT.FieldSceneLocal": "Local à cena",
   "MLT.FieldSceneLocalNotes": "Restringe regiões de teleporte e clonagem para corresponderem apenas a outras regiões na mesma cena.",
+  "MLT.FieldPlayersOnly": "Apenas personagens de jogadores",
   "MLT.SectionTokenCloning": "Clonagem de token",
   "MLT.SectionTokenCloningNotes": "Tokens serão clonados de regiões <b>Source</b> para quaisquer regiões <b>Target</b> com identificador correspondente.",
   "MLT.FieldSource": "Origem",
@@ -57,6 +58,7 @@
 
   "MLT.TipDisable": "Desativa temporariamente todas as automações MLT (teleporte, clonagem, macros) para esta região de desenho.",
   "MLT.TipLocal": "Quando ativo, esta região só corresponderá a outras regiões na mesma cena. Útil para evitar teleportes entre cenas.",
+  "MLT.TipPlayersOnly": "Apenas os tokens que pertencem a um jogador são afetados por esta região. Os NPCs não são teletransportados nem clonados e não acionam macros. Ative na região que dispara: entrada de teletransporte, origem da clonagem, região de nível ou de macro.",
   "MLT.TipIn": "Marca este desenho como ponto de entrada de teleporte. Tokens que entram aqui serão teleportados para uma região Out correspondente.",
   "MLT.TipOut": "Marca este desenho como destino de teleporte. Tokens de uma região In correspondente aparecerão aqui.",
   "MLT.TipTeleportId": "Um identificador de texto único para ligar regiões In e Out. Regiões com o mesmo ID estão conectadas.",

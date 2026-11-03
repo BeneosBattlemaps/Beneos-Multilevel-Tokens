@@ -19,6 +19,8 @@ const MLT = {
   // dnd5e.lastMovedToken the token that moved last, so a clone's value always names the
   // clone; copying the source's value made dnd5e write it straight back on every refresh.
   TOKEN_LOCAL_DELTA_FLAGS: ["dnd5e.lastMovedToken"],
+  // Property set by _duplicateTokenData on token copies: whether a player owns the token's actor.
+  PLAYER_OWNED_KEY: "_mltPlayerOwned",
   LOG_PREFIX: "Multilevel Tokens | ",
   TOKEN_STAIRS: "@stairs",
   SUPPORTED_TYPES: [foundry.data.ShapeData.TYPES.RECTANGLE, foundry.data.ShapeData.TYPES.ELLIPSE,
@@ -175,6 +177,7 @@ class MultilevelTokens {
     Hooks.on("createToken", this._onCreateToken.bind(this));
     Hooks.on("preUpdateToken", this._onPreUpdateToken.bind(this));
     Hooks.on("updateToken", this._onUpdateToken.bind(this));
+    Hooks.on("updateActor", this._onUpdateActor.bind(this));
     Hooks.on("createActiveEffect", this._onUpdateActiveEffect.bind(this));
     Hooks.on("deleteActiveEffect", this._onUpdateActiveEffect.bind(this));
     Hooks.on("controlToken", this._onControlToken.bind(this));
@@ -464,6 +467,25 @@ class MultilevelTokens {
     return this._isPointInRegion(this._getTokenCentre(scene, token), region);
   }
 
+  // A region flagged "playersOnly" ignores every token whose actor no player owns. The token
+  // may be a document or a JSON copy from _duplicateTokenData, so the actor is looked up by id
+  // when the copy carries none. A token without an actor never counts as a player character.
+  _isTokenAffectedByRegion(token, region) {
+    if (!this._hasRegionFlag(region, "playersOnly")) {
+      return true;
+    }
+    if (MLT.PLAYER_OWNED_KEY in token) {
+      return token[MLT.PLAYER_OWNED_KEY];
+    }
+    const actor = token.actor ?? game.actors.get(token.actorId);
+    return actor?.hasPlayerOwner === true;
+  }
+
+  // Region membership as every trigger sees it: inside the shape and not filtered by playersOnly.
+  _isTokenInAffectingRegion(scene, token, region) {
+    return this._isTokenInRegion(scene, token, region) && this._isTokenAffectedByRegion(token, region);
+  }
+
   _isPointInToken(scene, point, containingToken) {
     return containingToken.x <= point.x && point.x <= containingToken.x + (containingToken.width * scene.grid.size) &&
       containingToken.y <= point.y && point.y <= containingToken.y + (containingToken.height * scene.grid.size);
@@ -499,6 +521,11 @@ class MultilevelTokens {
       for (let i = 0; i < token.actor.effects.contents.length; ++i) {
         data.actorData.effects.push({ "icon": token.actor.effects.contents[i].img ?? token.actor.effects.contents[i].icon });
       }
+    }
+    // Carry the ownership answer from the document, where an unlinked token's own ownership is
+    // visible, onto the copy. Non-enumerable, so it never reaches the clone's create data.
+    if (token.actor !== undefined) {
+      Object.defineProperty(data, MLT.PLAYER_OWNED_KEY, { value: token.actor?.hasPlayerOwner === true });
     }
     return data;
   }
@@ -785,8 +812,8 @@ class MultilevelTokens {
 
   _getFlaggedRegionsContainingToken(scene, token, flags) {
     const centre = this._getTokenCentre(scene, token);
-    const regions = this._getFlaggedRegionsContainingPoint(scene, centre, flags);
-    return regions;
+    return this._getFlaggedRegionsContainingPoint(scene, centre, flags)
+      .filter(region => this._isTokenAffectedByRegion(token, region));
   }
 
   _getTeleportRegionsForMapNote(scene, mapNote) {
@@ -852,7 +879,7 @@ class MultilevelTokens {
 
   _getTokensToReplicateForRegion(scene, sourceRegion) {
     return scene.tokens
-      .filter(token => this._isTokenInRegion(scene, token, sourceRegion) && this._isProperToken(token))
+      .filter(token => this._isTokenInAffectingRegion(scene, token, sourceRegion) && this._isProperToken(token))
       .map(t => this._duplicateTokenData(t));
   }
 
@@ -863,7 +890,7 @@ class MultilevelTokens {
   }
 
   _replicateTokenFromRegionToRegion(requestBatch, scene, token, sourceRegion, targetScene, targetRegion) {
-    if (!this._isProperToken(token) || !this._isTokenInRegion(scene, token, sourceRegion)) {
+    if (!this._isProperToken(token) || !this._isTokenInAffectingRegion(scene, token, sourceRegion)) {
       return;
     }
     requestBatch.createToken(targetScene,
@@ -872,7 +899,7 @@ class MultilevelTokens {
 
   _updateReplicatedToken(requestBatch, sourceScene, sourceToken, sourceRegion, targetScene, targetToken, targetRegion, keys) {
     if (!this._isProperToken(sourceToken) || !this._isReplicatedToken(targetToken) ||
-      !this._isTokenInRegion(sourceScene, sourceToken, sourceRegion)) {
+      !this._isTokenInAffectingRegion(sourceScene, sourceToken, sourceRegion)) {
       return;
     }
     const updateData = this._getReplicatedTokenUpdateData(sourceScene, sourceToken, sourceRegion, targetScene, targetToken, targetRegion);
@@ -1369,7 +1396,7 @@ class MultilevelTokens {
 
     for (const inRegion of inRegions) {
       const tokens = scene.tokens.filter(token => {
-        if (!this._isProperToken(token) || !this._isTokenInRegion(scene, token, inRegion)) {
+        if (!this._isProperToken(token) || !this._isTokenInAffectingRegion(scene, token, inRegion)) {
           return false;
         }
         if (user.isGM) {
@@ -1510,6 +1537,10 @@ class MultilevelTokens {
       <div class="form-group">
         <label>${t("FieldSceneLocal")} ${tip("Local")}</label>
         <input type="checkbox" name="flags.multilevel-tokens.local" data-dtype="Boolean"/>
+      </div>
+      <div class="form-group">
+        <label>${t("FieldPlayersOnly")} ${tip("PlayersOnly")}</label>
+        <input type="checkbox" name="flags.multilevel-tokens.playersOnly" data-dtype="Boolean"/>
       </div>
       <h3 class="form-header"><i class="fas fa-random"></i> ${t("SectionTeleports")}</h3>
       <p class="notes">${t("SectionTeleportsNotes")}</p>
@@ -1702,6 +1733,7 @@ class MultilevelTokens {
     input("level").prop("checked", flags.level);
     input("levelNumber").prop("value", flags.levelNumber || 0);
     input("local").prop("checked", flags.local);
+    input("playersOnly").prop("checked", flags.playersOnly);
     input("disabled").prop("checked", flags.disabled);
 
     const isChecked = name => input(name).is(":checked");
@@ -1742,6 +1774,7 @@ class MultilevelTokens {
       enable("macroArgs", isMacro);
       enable("levelNumber", isLevel);
       enable("local", isTeleport || isSource || isTarget);
+      enable("playersOnly", isIn || isSource || isMacro || isLevel);
     };
     if (this._isUserGamemaster(game.user.id)) {
       mltTab.find("input, select").on("change", onChange);
@@ -2057,6 +2090,17 @@ class MultilevelTokens {
     if (this._hasRegionFlag(drawing, ["source", "target"])) {
       const d = JSON.parse(JSON.stringify(drawing));
       this._queueAsync(requestBatch => this._removeReplicationsForRegion(requestBatch, drawing.parent, d));
+    }
+  }
+
+  // A "playersOnly" region decides by actor ownership, so an ownership change can add or
+  // remove clones and must be re-evaluated even though no token moved.
+  _onUpdateActor(actor, change, options, userId) {
+    if (!("ownership" in (change ?? {}))) {
+      return;
+    }
+    if (game.scenes.some(scene => scene.drawings.some(d => this._hasRegionFlag(d, "playersOnly")))) {
+      this.refreshAll();
     }
   }
 

@@ -27,6 +27,7 @@
   "MLT.FieldSnapToGridNotes": "Tokeny będą przyciągane do siatki podczas teleportacji do tego regionu <b>Out</b>.",
   "MLT.FieldSceneLocal": "Lokalne dla sceny",
   "MLT.FieldSceneLocalNotes": "Ogranicz regiony teleportu i klonowania do dopasowywania tylko z innymi regionami na tej samej scenie.",
+  "MLT.FieldPlayersOnly": "Tylko postacie graczy",
   "MLT.SectionTokenCloning": "Klonowanie tokenów",
   "MLT.SectionTokenCloningNotes": "Tokeny będą klonowane z regionów <b>Source</b> do wszelkich regionów <b>Target</b> z pasującymi identyfikatorami.",
   "MLT.FieldSource": "Źródło",
@@ -57,6 +58,7 @@
 
   "MLT.TipDisable": "Tymczasowo wyłącza wszystkie automatyzacje MLT (teleport, klonowanie, makra) dla tego regionu rysunku.",
   "MLT.TipLocal": "Gdy włączone, ten region będzie pasował tylko do innych regionów na tej samej scenie. Przydatne do zapobiegania teleportacjom między scenami.",
+  "MLT.TipPlayersOnly": "Ten obszar dotyczy tylko tokenów należących do gracza. BN nie są teleportowani ani klonowani i nie uruchamiają makr. Ustaw to na obszarze wyzwalającym: wejściu teleportu, źródle klonowania, obszarze poziomu lub makra.",
   "MLT.TipIn": "Oznacz ten rysunek jako punkt wejścia teleportu. Tokeny wchodzące do tego regionu zostaną teleportowane do pasującego regionu Out.",
   "MLT.TipOut": "Oznacz ten rysunek jako cel teleportu. Tokeny z pasującego regionu In pojawią się tutaj.",
   "MLT.TipTeleportId": "Unikalny identyfikator tekstowy do łączenia regionów In i Out. Regiony z tym samym ID są połączone.",

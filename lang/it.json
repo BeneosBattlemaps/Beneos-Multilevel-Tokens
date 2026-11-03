@@ -27,6 +27,7 @@
   "MLT.FieldSnapToGridNotes": "I token verranno allineati alla griglia quando si teletrasportano in questa regione <b>Out</b>.",
   "MLT.FieldSceneLocal": "Locale alla scena",
   "MLT.FieldSceneLocalNotes": "Limita le regioni di teletrasporto e clonazione in modo che corrispondano solo ad altre regioni della stessa scena.",
+  "MLT.FieldPlayersOnly": "Solo personaggi giocanti",
   "MLT.SectionTokenCloning": "Clonazione token",
   "MLT.SectionTokenCloningNotes": "I token verranno clonati dalle regioni <b>Source</b> a qualsiasi regione <b>Target</b> con identificatore corrispondente.",
   "MLT.FieldSource": "Sorgente",
@@ -57,6 +58,7 @@
 
   "MLT.TipDisable": "Disattiva temporaneamente tutte le automazioni MLT (teletrasporto, clonazione, macro) per questa regione.",
   "MLT.TipLocal": "Se attivo, questa regione corrisponderà solo ad altre regioni nella stessa scena. Utile per evitare teletrasporti tra scene.",
+  "MLT.TipPlayersOnly": "Solo i token posseduti da un giocatore sono influenzati da questa regione. I PNG non vengono teletrasportati né clonati e non attivano macro. Impostalo sulla regione che attiva: ingresso del teletrasporto, origine della clonazione, regione di livello o di macro.",
   "MLT.TipIn": "Segna questo disegno come punto di ingresso del teletrasporto. I token che entrano qui verranno teletrasportati in una regione Out corrispondente.",
   "MLT.TipOut": "Segna questo disegno come destinazione del teletrasporto. I token da una regione In corrispondente appariranno qui.",
   "MLT.TipTeleportId": "Un identificatore testuale univoco per collegare le regioni In e Out. Regioni con lo stesso ID sono connesse.",
