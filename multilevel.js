@@ -889,8 +889,31 @@ class MultilevelTokens {
       .map(t => t);
   }
 
+  // True when targetScene already holds, or this batch already creates, the clone of token
+  // from sourceRegion in targetRegion. Several hooks create clones (createToken, createDrawing,
+  // refresh); their batches run one after the other, so a batch queued before the token
+  // existed would otherwise create the same clone a second time.
+  _hasReplication(requestBatch, scene, token, sourceRegion, targetScene, targetRegion) {
+    const pending = requestBatch._scenes[targetScene.id];
+    const deleted = new Set(pending?.delete ?? []);
+    const isSame = t => this._isReplicatedToken(t) &&
+      this._isReplicationForSourceToken(scene, token, targetScene, t) &&
+      this._isReplicationForSourceRegion(scene, sourceRegion, targetScene, t) &&
+      this._isReplicationForTargetRegion(targetScene, targetRegion, targetScene, t);
+    return targetScene.tokens.some(t => !deleted.has(t.id) && isSame(t)) ||
+      (pending?.create ?? []).some(isSame);
+  }
+
+  // Identity of a clone: one per target scene, source token, source region and target region.
+  _getReplicationKey(targetScene, targetToken) {
+    const f = targetToken.flags[MLT.SCOPE];
+    return [targetScene.id, f[MLT.FLAG_SOURCE_SCENE] ?? "", f[MLT.FLAG_SOURCE_TOKEN],
+      f[MLT.FLAG_SOURCE_REGION], f[MLT.FLAG_TARGET_REGION]].join("|");
+  }
+
   _replicateTokenFromRegionToRegion(requestBatch, scene, token, sourceRegion, targetScene, targetRegion) {
-    if (!this._isProperToken(token) || !this._isTokenInAffectingRegion(scene, token, sourceRegion)) {
+    if (!this._isProperToken(token) || !this._isTokenInAffectingRegion(scene, token, sourceRegion) ||
+      this._hasReplication(requestBatch, scene, token, sourceRegion, targetScene, targetRegion)) {
       return;
     }
     requestBatch.createToken(targetScene,
@@ -946,10 +969,16 @@ class MultilevelTokens {
     const tokens = this._getTokensToReplicateForRegion(sourceScene, sourceRegion);
     const replicatedTokens = this._getReplicatedTokensForSourceRegion(sourceScene, sourceRegion);
 
+    // One clone per source token and target region. Worlds that already hold duplicates from
+    // earlier versions get them removed here, keeping the first.
+    const seen = new Set();
     replicatedTokens.forEach(([targetScene, targetToken]) => {
       const sourceToken = tokens.find(t => this._isReplicationForSourceToken(sourceScene, t, targetScene, targetToken));
       const targetRegion = targetScene.drawings.find(d => d.id === targetToken.flags[MLT.SCOPE][MLT.FLAG_TARGET_REGION]);
-      if (sourceToken && targetRegion) {
+      const key = this._getReplicationKey(targetScene, targetToken);
+      const isDuplicate = seen.has(key);
+      seen.add(key);
+      if (sourceToken && targetRegion && !isDuplicate) {
         this._updateReplicatedToken(requestBatch, sourceScene, sourceToken, sourceRegion, targetScene, targetToken, targetRegion);
       } else {
         requestBatch.deleteToken(targetScene, targetToken._id);
@@ -976,12 +1005,16 @@ class MultilevelTokens {
 
     const tokensToDelete = [];
     const tokensToUpdate = [];
+    const seen = new Set();
     this._getReplicatedTokensForSourceToken(scene, token).forEach(([targetScene, targetToken]) => {
       const mappedRegion = mappedRegions.find(([sourceRegion, mapScene, mapRegion]) =>
         this._isReplicationForSourceRegion(scene, sourceRegion, targetScene, targetToken) &&
         this._isReplicationForTargetRegion(mapScene, mapRegion, targetScene, targetToken));
 
-      if (mappedRegion) {
+      const key = this._getReplicationKey(targetScene, targetToken);
+      const isDuplicate = seen.has(key);
+      seen.add(key);
+      if (mappedRegion && !isDuplicate) {
         tokensToUpdate.push([mappedRegion[0], targetScene, targetToken, mappedRegion[2]]);
       } else {
         tokensToDelete.push([targetScene, targetToken]);
